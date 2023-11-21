@@ -20,9 +20,11 @@ app.use(cors());
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
+const enquiry = require("./Routes/enquiry");
 const users = require("./Routes/users");
 const branch = require("./Routes/branch");
 
+app.use(enquiry);
 app.use(users);
 app.use(branch);
 
