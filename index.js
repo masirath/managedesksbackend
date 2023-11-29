@@ -3,7 +3,7 @@ const cors = require("cors");
 const express = require("express");
 const mongoose = require("mongoose");
 const mongoString = process.env.DATABASE_URL;
-const port = process.env.port;
+const port = process.env.PORT;
 
 mongoose.connect(mongoString);
 const database = mongoose.connection;
@@ -21,13 +21,17 @@ app.use(cors());
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
-const enquiry = require("./Routes/enquiry");
-const users = require("./Routes/users");
-const branch = require("./Routes/branch");
+// const enquiry = require("./Routes/enquiry");
+// const users = require("./Routes/users");
+// const branch = require("./Routes/branch");
 
-app.use(enquiry);
-app.use(users);
-app.use(branch);
+// app.use(enquiry);
+// app.use(users);
+// app.use(branch);
+
+app.get("/", (req, res) => {
+  res.send("<h1>Working</h1>");
+});
 
 app.listen(port, () => {
   console.log(`Server Started at ${port}`);
