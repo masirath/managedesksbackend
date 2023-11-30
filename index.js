@@ -21,16 +21,16 @@ app.use(cors());
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
-// const enquiry = require("./Routes/enquiry");
-// const users = require("./Routes/users");
-// const branch = require("./Routes/branch");
+const enquiry = require("./Routes/enquiry");
+const users = require("./Routes/users");
+const branch = require("./Routes/branch");
 
-// app.use(enquiry);
-// app.use(users);
-// app.use(branch);
+app.use(enquiry);
+app.use(users);
+app.use(branch);
 
 app.get("/", (req, res) => {
-  res.send(`<h1>Working</h1> ${port} == 4000 Port`);
+  res.send(`Working ${port} == 4000 Port`);
 });
 
 app.listen(port, () => {
