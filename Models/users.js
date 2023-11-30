@@ -1,23 +1,36 @@
 const mongoose = require("mongoose");
 
 const users_schema = new mongoose.Schema({
-  email: {
+  first_name: {
     required: true,
     type: String,
-    unique: true,
-    lowercase: true,
-    trim: true,
+  },
+  last_name: {
+    required: false,
+    type: String,
+  },
+  reference_no: {
+    required: false,
+    type: String,
+  },
+  email: {
+    required: false,
+    type: String,
   },
   phone: {
     required: false,
     type: String,
-    unique: true,
   },
-  password: {
+  role: {
     required: true,
     type: String,
   },
-  role: {
+  username: {
+    required: true,
+    unique: true,
+    type: String,
+  },
+  password: {
     required: true,
     type: String,
   },
@@ -26,11 +39,11 @@ const users_schema = new mongoose.Schema({
     type: String,
   },
   branch: {
-    required: false,
+    required: true,
     type: String,
   },
   status: {
-    required: true,
+    required: false,
     type: Number,
     default: 1,
   },

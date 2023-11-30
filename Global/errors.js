@@ -19,6 +19,10 @@ const failed_400 = (res, message) => {
   return res.json({ status: false, status_code: 400, message: message });
 };
 
+const unique_400 = (res, code, message) => {
+  return res.json({ status: false, status_code: code, message: message });
+};
+
 const success_200 = (res, message, data) => {
   return res.json({
     status: true,
@@ -28,9 +32,19 @@ const success_200 = (res, message, data) => {
   });
 };
 
+const unauthorized = (res) => {
+  return res.json({
+    status: false,
+    status_code: 400,
+    message: "Unauthorized",
+  });
+};
+
 module.exports = {
   catch_400,
   incomplete_400,
   failed_400,
+  unique_400,
   success_200,
+  unauthorized,
 };

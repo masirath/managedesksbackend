@@ -8,35 +8,36 @@ const branch_schema = mongoose.Schema({
   email: {
     required: false,
     type: String,
-    trim: true,
-    unique: true,
   },
   phone: {
     required: false,
-    type: Number,
-    unique: true,
+    type: String,
   },
-  ref: {
-    required: true,
+  tax_number: {
+    required: false,
     type: String,
   },
   zip: {
-    required: true,
+    required: false,
     type: String,
   },
-  street: {
-    required: true,
+  area: {
+    required: false,
     type: String,
   },
   city: {
-    required: true,
+    required: false,
     type: String,
   },
   state: {
-    required: true,
+    required: false,
     type: String,
   },
   country: {
+    required: true,
+    type: String,
+  },
+  ref: {
     required: true,
     type: String,
   },
