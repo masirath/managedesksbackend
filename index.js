@@ -30,7 +30,7 @@ app.use(express.json());
 // app.use(branch);
 
 app.get("/", (req, res) => {
-  res.send(`<h1>Working</h1> ${port}`);
+  res.send(`<h1>Working</h1> ${port} == 4000`);
 });
 
 app.listen(port, () => {
