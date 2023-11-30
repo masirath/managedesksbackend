@@ -1,17 +1,17 @@
 const express = require("express");
 const users = express.Router();
 const {
-  get_otp,
-  verify_otp,
+  create_account,
   create_user,
+  user_status,
+  update_user,
   verify_user,
-  create_people,
 } = require("../Controllers/users");
 
-users.get("/get-otp", get_otp);
-users.post("/verify-otp", verify_otp);
+users.post("/create-account", create_account);
 users.post("/create-user", create_user);
+users.post("/update-user", update_user);
+users.post("/user-status", user_status);
 users.post("/verify-user", verify_user);
-users.post("/create-people", create_people);
 
 module.exports = users;
