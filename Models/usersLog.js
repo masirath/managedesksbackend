@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const users_schema = new mongoose.Schema({
+const users_log_schema = new mongoose.Schema({
   first_name: {
     required: true,
     type: String,
@@ -47,18 +47,10 @@ const users_schema = new mongoose.Schema({
     type: Number,
     default: 1,
   },
-  updated: {
-    required: true,
-    type: Date,
-  },
   created: {
     required: true,
     type: Date,
   },
-  created_by: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "users",
-  },
 });
 
-module.exports = mongoose.model("users", users_schema, "users");
+module.exports = mongoose.model("users_log", users_log_schema, "users_log");

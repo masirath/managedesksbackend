@@ -46,6 +46,14 @@ const branch_schema = mongoose.Schema({
     type: Number,
     default: 1,
   },
+  updated: {
+    required: true,
+    type: Date,
+  },
+  created: {
+    required: true,
+    type: Date,
+  },
 });
 
 module.exports = mongoose.model("branch", branch_schema, "branch");

@@ -9,7 +9,7 @@ const {
   success_200,
   incomplete_400,
   unauthorized,
-  unique_400,
+  error_400,
 } = require("../Global/errors");
 const { authorization } = require("../Global/authorization");
 
@@ -23,7 +23,7 @@ const create_account = async (req, res) => {
 
     const existing_user = await users.findOne({ username: username });
     if (existing_user) {
-      unique_400(res, 401, "Username already exists");
+      error_400(res, 401, "Username already exists");
     }
 
     const hashed_password = await bcrypt.hash(password, 10);
@@ -37,6 +37,8 @@ const create_account = async (req, res) => {
       phone: phone,
       country: country,
       ref: next_ref,
+      created: new Date(),
+      updated: new Date(),
     });
 
     const branchToSave = await branchData.save();
@@ -50,6 +52,8 @@ const create_account = async (req, res) => {
       role: "SUPERADMIN",
       ref: next_ref,
       branch: branchData?._id,
+      created: new Date(),
+      updated: new Date(),
     });
 
     const usersToSave = await usersData.save();
@@ -80,7 +84,6 @@ const create_user = async (req, res) => {
         phone,
         role,
         branch,
-        status,
       } = req?.body;
 
       if (!username || !password || !first_name || !role || !branch) {
@@ -96,11 +99,11 @@ const create_user = async (req, res) => {
       });
 
       if (existing_username) {
-        unique_400(res, 401, "Username already exists");
+        error_400(res, 401, "Username already exists");
       }
 
       if (existing_reference) {
-        unique_400(res, 402, "Reference number already exists");
+        error_400(res, 402, "Reference number already exists");
       }
 
       const hashed_password = await bcrypt.hash(password, 10);
@@ -116,7 +119,9 @@ const create_user = async (req, res) => {
         role: role,
         ref: authorize?.ref,
         branch: branch,
-        status: status,
+        created: new Date(),
+        updated: new Date(),
+        created_by: authorize?.id,
       });
 
       const dataToSave = await data.save();
@@ -168,11 +173,11 @@ const update_user = async (req, res) => {
       });
 
       if (existing_username) {
-        unique_400(res, 401, "Username already exists");
+        error_400(res, 401, "Username already exists");
       }
 
       if (existing_reference) {
-        unique_400(res, 402, "Reference number already exists");
+        error_400(res, 402, "Reference number already exists");
       }
 
       username && (update_user.username = username);
@@ -184,6 +189,7 @@ const update_user = async (req, res) => {
       role && (update_user.role = role);
       branch && (update_user.branch = branch);
       status && (update_user.status = status);
+      update_user.updated = new Date();
 
       if (password) {
         const hashed_password = await bcrypt.hash(password, 10);
@@ -200,31 +206,28 @@ const update_user = async (req, res) => {
   }
 };
 
-const user_status = async (req, res) => {
+const get_user = async (req, res) => {
   try {
     const authorize = authorization(req);
     if (authorize) {
-      const { id, status } = req.body;
+      const { id } = req?.params;
 
-      if (!id || !status) {
-        incomplete_400(status);
+      if (!id) {
+        incomplete_400(res);
       }
 
-      const update_user = await users.findById(id);
+      let user = await users.findById(id).populate("branch");
 
-      if (!update_user) {
+      if (!user) {
         failed_400(res, "User not found");
       }
 
-      status && (update_user.status = status);
-
-      const dataToSave = await update_user.save();
-      success_200(res, "User status updated", dataToSave);
+      success_200(res, "", user);
     } else {
       unauthorized(res);
     }
   } catch (errors) {
-    catch_400(res);
+    catch_400(res, errors?.message);
   }
 };
 
@@ -239,22 +242,24 @@ const verify_user = async (req, res) => {
     const user = await users.findOne({ username: username });
 
     if (!user) {
-      unique_400(res, 401, "Invalid username or password");
+      error_400(res, 401, "Invalid username or password");
     }
 
     if (!user.status) {
-      unique_400(res, 402, "Invalid account");
+      error_400(res, 402, "Invalid account");
     }
 
     const verify_password = await bcrypt.compare(password, user.password);
 
     if (verify_password) {
+      const user_branch = await branch.findById(user.branch);
+
       const token = jwt.sign(
         {
           id: user._id,
           username: user.username,
           role: user.role,
-          branch: user.branch,
+          branch: user_branch,
           ref: user.ref,
         },
         secret_key
@@ -276,6 +281,6 @@ module.exports = {
   create_account,
   create_user,
   update_user,
-  user_status,
+  get_user,
   verify_user,
 };
