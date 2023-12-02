@@ -19,7 +19,7 @@ const failed_400 = (res, message) => {
   return res.json({ status: false, status_code: 400, message: message });
 };
 
-const unique_400 = (res, code, message) => {
+const error_400 = (res, code, message) => {
   return res.json({ status: false, status_code: code, message: message });
 };
 
@@ -44,7 +44,7 @@ module.exports = {
   catch_400,
   incomplete_400,
   failed_400,
-  unique_400,
+  error_400,
   success_200,
   unauthorized,
 };

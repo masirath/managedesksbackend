@@ -3,15 +3,15 @@ const users = express.Router();
 const {
   create_account,
   create_user,
-  user_status,
   update_user,
+  get_user,
   verify_user,
 } = require("../Controllers/users");
 
 users.post("/create-account", create_account);
 users.post("/create-user", create_user);
 users.post("/update-user", update_user);
-users.post("/user-status", user_status);
+users.get("/user-get/:id", get_user);
 users.post("/verify-user", verify_user);
 
 module.exports = users;
