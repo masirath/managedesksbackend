@@ -22,48 +22,49 @@ const create_account = async (req, res) => {
     }
 
     const existing_user = await users.findOne({ username: username });
+
     if (existing_user) {
       error_400(res, 401, "Username already exists");
+    } else {
+      const hashed_password = await bcrypt.hash(password, 10);
+
+      const total_user = await users.countDocuments({ role: "SUPERADMIN" });
+      const next_ref = "REF-" + (1000 + total_user);
+
+      const branchData = new branch({
+        name: name,
+        email: email,
+        phone: phone,
+        country: country,
+        ref: next_ref,
+        created: new Date(),
+        updated: new Date(),
+      });
+
+      const branchToSave = await branchData.save();
+
+      const usersData = new users({
+        username: username,
+        password: hashed_password,
+        first_name: username,
+        email: email,
+        phone: phone,
+        role: "SUPERADMIN",
+        ref: next_ref,
+        branch: branchData?._id,
+        created: new Date(),
+        updated: new Date(),
+      });
+
+      const usersToSave = await usersData.save();
+
+      const dataToSave = {
+        user: usersToSave,
+        branch: branchToSave,
+      };
+
+      success_200(res, "Account created");
     }
-
-    const hashed_password = await bcrypt.hash(password, 10);
-
-    const total_user = await users.countDocuments({ role: "SUPERADMIN" });
-    const next_ref = "REF-" + (1000 + total_user);
-
-    const branchData = new branch({
-      name: name,
-      email: email,
-      phone: phone,
-      country: country,
-      ref: next_ref,
-      created: new Date(),
-      updated: new Date(),
-    });
-
-    const branchToSave = await branchData.save();
-
-    const usersData = new users({
-      username: username,
-      password: hashed_password,
-      first_name: username,
-      email: email,
-      phone: phone,
-      role: "SUPERADMIN",
-      ref: next_ref,
-      branch: branchData?._id,
-      created: new Date(),
-      updated: new Date(),
-    });
-
-    const usersToSave = await usersData.save();
-
-    const dataToSave = {
-      user: usersToSave,
-      branch: branchToSave,
-    };
-
-    success_200(res, "Account created", dataToSave);
   } catch (errors) {
     catch_400(res, errors?.message);
   }
