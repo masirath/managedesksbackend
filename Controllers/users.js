@@ -19,51 +19,51 @@ const create_account = async (req, res) => {
 
     if (!username || !password || !name || !phone || !email || !country) {
       incomplete_400(res);
-    }
-
-    const existing_user = await users.findOne({ username: username });
-
-    if (existing_user) {
-      error_400(res, 401, "Username already exists");
     } else {
-      const hashed_password = await bcrypt.hash(password, 10);
+      const existing_user = await users.findOne({ username: username });
 
-      const total_user = await users.countDocuments({ role: "SUPERADMIN" });
-      const next_ref = "REF-" + (1000 + total_user);
+      if (existing_user) {
+        error_400(res, 401, "Username already exists");
+      } else {
+        const hashed_password = await bcrypt.hash(password, 10);
 
-      const branchData = new branch({
-        name: name,
-        email: email,
-        phone: phone,
-        country: country,
-        ref: next_ref,
-        created: new Date(),
-        updated: new Date(),
-      });
+        const total_user = await users.countDocuments({ role: "SUPERADMIN" });
+        const next_ref = "REF-" + (1000 + total_user);
 
-      const branchToSave = await branchData.save();
+        const branchData = new branch({
+          name: name,
+          email: email,
+          phone: phone,
+          country: country,
+          ref: next_ref,
+          created: new Date(),
+          updated: new Date(),
+        });
 
-      const usersData = new users({
-        username: username,
-        password: hashed_password,
-        first_name: username,
-        email: email,
-        phone: phone,
-        role: "SUPERADMIN",
-        ref: next_ref,
-        branch: branchData?._id,
-        created: new Date(),
-        updated: new Date(),
-      });
+        const branchToSave = await branchData.save();
 
-      const usersToSave = await usersData.save();
+        const usersData = new users({
+          username: username,
+          password: hashed_password,
+          first_name: username,
+          email: email,
+          phone: phone,
+          role: "SUPERADMIN",
+          ref: next_ref,
+          branch: branchData?._id,
+          created: new Date(),
+          updated: new Date(),
+        });
 
-      const dataToSave = {
-        user: usersToSave,
-        branch: branchToSave,
-      };
+        const usersToSave = await usersData.save();
 
-      success_200(res, "Account created");
+        const dataToSave = {
+          user: usersToSave,
+          branch: branchToSave,
+        };
+
+        success_200(res, "Account created");
+      }
     }
   } catch (errors) {
     catch_400(res, errors?.message);
@@ -87,46 +87,45 @@ const create_user = async (req, res) => {
         branch,
       } = req?.body;
 
-      if (!username || !password || !first_name || !role || !branch) {
+      if (!username || !password || !first_name || !role) {
         incomplete_400(res);
+      } else {
+        const existing_username = await users.findOne({
+          username: username,
+        });
+
+        const existing_reference = await users.findOne({
+          reference_no: reference_no,
+        });
+
+        if (existing_username) {
+          error_400(res, 401, "Username already exists");
+        } else if (existing_reference) {
+          error_400(res, 402, "Reference number already exists");
+        } else {
+          const hashed_password = await bcrypt.hash(password, 10);
+
+          const data = new users({
+            username: username,
+            password: hashed_password,
+            first_name: first_name,
+            last_name: last_name,
+            reference_no: reference_no,
+            email: email,
+            phone: phone,
+            role: role,
+            ref: authorize?.ref,
+            branch: authorize?.branch,
+            created: new Date(),
+            updated: new Date(),
+            created_by: authorize?.id,
+          });
+
+          const dataToSave = await data.save();
+
+          success_200(res, "User created");
+        }
       }
-
-      const existing_username = await users.findOne({
-        username: username,
-      });
-
-      const existing_reference = await users.findOne({
-        reference_no: reference_no,
-      });
-
-      if (existing_username) {
-        error_400(res, 401, "Username already exists");
-      }
-
-      if (existing_reference) {
-        error_400(res, 402, "Reference number already exists");
-      }
-
-      const hashed_password = await bcrypt.hash(password, 10);
-
-      const data = new users({
-        username: username,
-        password: hashed_password,
-        first_name: first_name,
-        last_name: last_name,
-        reference_no: reference_no,
-        email: email,
-        phone: phone,
-        role: role,
-        ref: authorize?.ref,
-        branch: branch,
-        created: new Date(),
-        updated: new Date(),
-        created_by: authorize?.id,
-      });
-
-      const dataToSave = await data.save();
-      success_200(res, "User created", dataToSave);
     } else {
       unauthorized(res);
     }
@@ -153,52 +152,50 @@ const update_user = async (req, res) => {
         status,
       } = req?.body;
 
-      if (!id || !username || !password || !first_name || !role || !branch) {
+      if (!id || !username || !first_name || !role) {
         incomplete_400(res);
+      } else {
+        const update_user = await users.findById(id);
+
+        if (!update_user) {
+          failed_400(res, "User not found");
+        }
+
+        const existing_username = await users.findOne({
+          username: username,
+          _id: { $ne: id },
+        });
+
+        const existing_reference = await users.findOne({
+          reference_no: reference_no,
+          _id: { $ne: id },
+        });
+
+        if (existing_username) {
+          error_400(res, 401, "Username already exists");
+        } else if (existing_reference) {
+          error_400(res, 402, "Reference number already exists");
+        } else {
+          username && (update_user.username = username);
+          first_name && (update_user.first_name = first_name);
+          last_name && (update_user.last_name = last_name);
+          reference_no && (update_user.reference_no = reference_no);
+          email && (update_user.email = email);
+          phone && (update_user.phone = phone);
+          role && (update_user.role = role);
+          branch && (update_user.branch = authorize?.branch);
+          status && (update_user.status = status);
+          update_user.updated = new Date();
+
+          if (password) {
+            const hashed_password = await bcrypt.hash(password, 10);
+            update_user.password = hashed_password;
+          }
+
+          const dataToSave = await update_user.save();
+          success_200(res, "User updated");
+        }
       }
-
-      const update_user = await users.findById(id);
-
-      if (!update_user) {
-        failed_400(res, "User not found");
-      }
-
-      const existing_username = await users.findOne({
-        username: username,
-        _id: { $ne: id },
-      });
-
-      const existing_reference = await users.findOne({
-        reference_no: reference_no,
-        _id: { $ne: id },
-      });
-
-      if (existing_username) {
-        error_400(res, 401, "Username already exists");
-      }
-
-      if (existing_reference) {
-        error_400(res, 402, "Reference number already exists");
-      }
-
-      username && (update_user.username = username);
-      first_name && (update_user.first_name = first_name);
-      last_name && (update_user.last_name = last_name);
-      reference_no && (update_user.reference_no = reference_no);
-      email && (update_user.email = email);
-      phone && (update_user.phone = phone);
-      role && (update_user.role = role);
-      branch && (update_user.branch = branch);
-      status && (update_user.status = status);
-      update_user.updated = new Date();
-
-      if (password) {
-        const hashed_password = await bcrypt.hash(password, 10);
-        update_user.password = hashed_password;
-      }
-
-      const dataToSave = await update_user.save();
-      success_200(res, "User updated", dataToSave);
     } else {
       unauthorized(res);
     }
@@ -217,13 +214,36 @@ const get_user = async (req, res) => {
         incomplete_400(res);
       }
 
-      let user = await users.findById(id).populate("branch");
+      let user = await users
+        .findById(id)
+        .select("-password")
+        .populate("branch");
 
       if (!user) {
         failed_400(res, "User not found");
+      } else {
+        success_200(res, "", user);
       }
+    } else {
+      unauthorized(res);
+    }
+  } catch (errors) {
+    catch_400(res, errors?.message);
+  }
+};
 
-      success_200(res, "", user);
+const get_all_user = async (req, res) => {
+  try {
+    const authorize = authorization(req);
+    if (authorize) {
+      let usersList = await users
+        .find({
+          branch: authorize?.branch,
+          role: { $ne: "SUPERADMIN" },
+        })
+        .select("-password");
+
+      success_200(res, "", usersList);
     } else {
       unauthorized(res);
     }
@@ -283,5 +303,6 @@ module.exports = {
   create_user,
   update_user,
   get_user,
+  get_all_user,
   verify_user,
 };
