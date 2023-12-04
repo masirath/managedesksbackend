@@ -95,7 +95,7 @@ const create_user = async (req, res) => {
         });
 
         const existing_reference = await users.findOne({
-          reference_no: reference_no,
+          reference_no: { $ne: "", $eq: reference_no },
         });
 
         if (existing_username) {
