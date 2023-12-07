@@ -1,5 +1,4 @@
 const express = require("express");
-const users = express.Router();
 const {
   create_account,
   create_user,
@@ -8,6 +7,7 @@ const {
   get_all_user,
   verify_user,
 } = require("../Controllers/users");
+const users = express.Router();
 
 users.post("/create-account", create_account);
 users.post("/create-user", create_user);

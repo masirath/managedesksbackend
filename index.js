@@ -23,9 +23,13 @@ app.use(express.json());
 
 const users = require("./Routes/users");
 const branch = require("./Routes/branch");
+const customers = require("./Routes/customers");
+const items = require("./Routes/items");
 
 app.use(users);
 app.use(branch);
+app.use(customers);
+app.use(items);
 
 app.get("/", (req, res) => {
   res.send(`Working ${port} == 4000 Port`);

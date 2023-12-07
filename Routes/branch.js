@@ -1,6 +1,6 @@
 const express = require("express");
-const branch = express.Router();
 const { create_branch } = require("../Controllers/branch");
+const branch = express.Router();
 
 branch.post("/create-branch", create_branch);
 

@@ -1,16 +1,8 @@
 const mongoose = require("mongoose");
 
-const users_schema = new mongoose.Schema({
-  first_name: {
+const customers_schema = new mongoose.Schema({
+  name: {
     required: true,
-    type: String,
-  },
-  last_name: {
-    required: false,
-    type: String,
-  },
-  reference_no: {
-    required: false,
     type: String,
   },
   email: {
@@ -21,17 +13,24 @@ const users_schema = new mongoose.Schema({
     required: false,
     type: String,
   },
-  role: {
-    required: true,
+  area: {
+    required: false,
     type: String,
   },
-  username: {
-    required: true,
-    unique: true,
+  city: {
+    required: false,
     type: String,
   },
-  password: {
-    required: true,
+  state: {
+    required: false,
+    type: String,
+  },
+  tax_number: {
+    required: false,
+    type: String,
+  },
+  country: {
+    required: false,
     type: String,
   },
   status: {
@@ -61,4 +60,4 @@ const users_schema = new mongoose.Schema({
   },
 });
 
-module.exports = mongoose.model("users", users_schema, "users");
+module.exports = mongoose.model("customers", customers_schema, "customers");
