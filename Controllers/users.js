@@ -72,7 +72,7 @@ const create_account = async (req, res) => {
 
 const create_user = async (req, res) => {
   try {
-    const authorize = authorization(req, res);
+    const authorize = authorization(req);
 
     if (authorize) {
       const {
@@ -84,6 +84,7 @@ const create_user = async (req, res) => {
         email,
         phone,
         role,
+        status,
         branch,
       } = req?.body;
 
@@ -96,6 +97,7 @@ const create_user = async (req, res) => {
 
         const existing_reference = await users.findOne({
           reference_no: { $ne: "", $eq: reference_no },
+          branch: authorize?.branch,
         });
 
         if (existing_username) {
@@ -113,6 +115,7 @@ const create_user = async (req, res) => {
             reference_no: reference_no,
             email: email,
             phone: phone,
+            status: status ? status : 0,
             role: role,
             ref: authorize?.ref,
             branch: authorize?.branch,
@@ -122,7 +125,6 @@ const create_user = async (req, res) => {
           });
 
           const dataToSave = await data.save();
-
           success_200(res, "User created");
         }
       }
@@ -148,52 +150,53 @@ const update_user = async (req, res) => {
         email,
         phone,
         role,
-        branch,
         status,
+        branch,
       } = req?.body;
 
       if (!id || !username || !first_name || !role) {
         incomplete_400(res);
       } else {
-        const update_user = await users.findById(id);
+        const user = await users.findById(id);
 
-        if (!update_user) {
+        if (!user) {
           failed_400(res, "User not found");
-        }
-
-        const existing_username = await users.findOne({
-          username: username,
-          _id: { $ne: id },
-        });
-
-        const existing_reference = await users.findOne({
-          reference_no: { $ne: "", $eq: reference_no },
-          _id: { $ne: id },
-        });
-
-        if (existing_username) {
-          error_400(res, 401, "Username already exists");
-        } else if (existing_reference) {
-          error_400(res, 402, "Reference number already exists");
         } else {
-          username && (update_user.username = username);
-          first_name && (update_user.first_name = first_name);
-          last_name && (update_user.last_name = last_name);
-          reference_no && (update_user.reference_no = reference_no);
-          email && (update_user.email = email);
-          phone && (update_user.phone = phone);
-          role && (update_user.role = role);
-          branch && (update_user.branch = authorize?.branch);
-          status && (update_user.status = status);
-          update_user.updated = new Date();
+          const existing_username = await users.findOne({
+            username: username,
+            _id: { $ne: id },
+          });
 
-          if (password) {
-            const hashed_password = await bcrypt.hash(password, 10);
-            update_user.password = hashed_password;
+          const existing_reference = await users.findOne({
+            reference_no: { $ne: "", $eq: reference_no },
+            _id: { $ne: id },
+            branch: authorize?.branch,
+          });
+
+          if (existing_username) {
+            error_400(res, 401, "Username already exists");
+          } else if (existing_reference) {
+            error_400(res, 402, "Reference number already exists");
+          } else {
+            username && (user.username = username);
+            first_name && (user.first_name = first_name);
+            last_name && (user.last_name = last_name);
+            reference_no && (user.reference_no = reference_no);
+            email && (user.email = email);
+            phone && (user.phone = phone);
+            role && (user.role = role);
+            branch && (user.branch = branch);
+            status ? (user.status = status) : (user.status = 0);
+            user.updated = new Date();
+
+            if (password) {
+              const hashed_password = await bcrypt.hash(password, 10);
+              user.password = hashed_password;
+            }
+
+            const dataToUpdate = await user.save();
+            success_200(res, "User updated");
           }
-
-          const dataToSave = await update_user.save();
-          success_200(res, "User updated");
         }
       }
     } else {

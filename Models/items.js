@@ -1,37 +1,40 @@
 const mongoose = require("mongoose");
 
-const users_schema = new mongoose.Schema({
-  first_name: {
+const items_schema = new mongoose.Schema({
+  name: {
     required: true,
     type: String,
   },
-  last_name: {
-    required: false,
-    type: String,
-  },
-  reference_no: {
-    required: false,
-    type: String,
-  },
-  email: {
-    required: false,
-    type: String,
-  },
-  phone: {
-    required: false,
-    type: String,
-  },
-  role: {
+  unit: {
     required: true,
     type: String,
   },
-  username: {
+  stock: {
+    required: false,
+    type: Number,
+  },
+  purchase_price: {
     required: true,
-    unique: true,
+    type: Number,
+  },
+  sale_price: {
+    required: true,
+    type: Number,
+  },
+  tax: {
+    required: false,
     type: String,
   },
-  password: {
-    required: true,
+  category: {
+    required: false,
+    type: String,
+  },
+  brand: {
+    required: false,
+    type: String,
+  },
+  image: {
+    required: false,
     type: String,
   },
   status: {
@@ -61,4 +64,4 @@ const users_schema = new mongoose.Schema({
   },
 });
 
-module.exports = mongoose.model("users", users_schema, "users");
+module.exports = mongoose.model("items", items_schema, "items");
