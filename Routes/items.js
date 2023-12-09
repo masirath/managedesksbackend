@@ -7,8 +7,8 @@ const {
   get_all_items,
 } = require("../Controllers/items");
 
-items.post("/create-items", create_items);
-items.post("/update-items", update_items);
+items.post("/create-item", create_items);
+items.post("/update-item", update_items);
 items.get("/get-item/:id", get_item);
 items.get("/get-al-items", get_all_items);
 
