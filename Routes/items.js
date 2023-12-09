@@ -10,6 +10,6 @@ const {
 items.post("/create-item", create_items);
 items.post("/update-item", update_items);
 items.get("/get-item/:id", get_item);
-items.get("/get-al-items", get_all_items);
+items.get("/get-all-items", get_all_items);
 
 module.exports = items;
