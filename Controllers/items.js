@@ -38,7 +38,7 @@ const create_items = async (req, res) => {
           stock: stock ? stock : 0,
           purchase_price: purchase_price,
           sale_price: sale_price,
-          tax: tax,
+          tax: tax ? tax : 0,
           category: category,
           brand: brand,
           image: image,
@@ -108,7 +108,7 @@ const update_items = async (req, res) => {
             stock ? (item.stock = stock) : (item.stock = 0);
             purchase_price && (item.purchase_price = purchase_price);
             sale_price && (item.sale_price = sale_price);
-            tax && (item.tax = tax);
+            tax ? (item.tax = tax) : (item.tax = 0);
             category && (item.category = category);
             brand && (item.brand = brand);
             image && (item.image = image);
@@ -116,7 +116,7 @@ const update_items = async (req, res) => {
             branch && (item.branch = branch);
 
             const dataToUpdata = await item.save();
-            success_200(res, "Item Created", dataToUpdata);
+            success_200(res, "Item Updated", dataToUpdata);
           }
         }
       }
