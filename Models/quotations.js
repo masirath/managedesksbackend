@@ -1,41 +1,33 @@
 const mongoose = require("mongoose");
 
-const items_schema = new mongoose.Schema({
-  name: {
+const quotation_schema = new mongoose.Schema({
+  quote_number: {
     required: true,
     type: String,
   },
-  unit: {
+  customer: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "customers",
+  },
+  date_from: {
     required: true,
-    type: String,
+    type: Date,
   },
-  stock: {
-    required: false,
-    type: Number,
+  date_to: {
+    required: true,
+    type: Date,
   },
-  purchase_price: {
+  total: {
     required: true,
     type: Number,
   },
-  sale_price: {
+  tax_amount: {
     required: true,
     type: Number,
   },
-  tax: {
-    required: false,
+  grand_total: {
+    required: true,
     type: Number,
-  },
-  category: {
-    required: false,
-    type: String,
-  },
-  brand: {
-    required: false,
-    type: String,
-  },
-  image: {
-    required: false,
-    type: String,
   },
   status: {
     required: true,
@@ -64,4 +56,4 @@ const items_schema = new mongoose.Schema({
   },
 });
 
-module.exports = mongoose.model("items", items_schema, "items");
+module.exports = mongoose.model("quotations", quotation_schema, "quotations");
