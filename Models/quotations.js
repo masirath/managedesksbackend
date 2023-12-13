@@ -29,6 +29,11 @@ const quotation_schema = new mongoose.Schema({
     required: true,
     type: Number,
   },
+  quotation_status: {
+    required: true,
+    type: String,
+    /* Pending, Sent, Ordered */
+  },
   status: {
     required: true,
     type: Number,
