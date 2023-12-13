@@ -89,7 +89,9 @@ const create_quotation = async (req, res) => {
             date_to: date_to,
             total: total_amount,
             tax_amount: tax_amount,
-            grand_total: total_amount + tax_amount,
+            grand_total:
+              parseFloat(total_amount)?.toFixed(3) +
+              parseFloat(tax_amount)?.toFixed(3),
             quotation_status: "Pending",
             status: status ? status : 0,
             ref: authorize?.ref,
@@ -206,7 +208,9 @@ const update_quotation = async (req, res) => {
             existing_user.branch = branch && branch;
             existing_user.total = total_amount;
             existing_user.tax_amount = tax_amount;
-            existing_user.grand_total = grand_total;
+            existing_user.grand_total =
+              parseFloat(total_amount)?.toFixed(3) +
+              parseFloat(tax_amount)?.toFixed(3);
             existing_user.quotation_status = "Pending";
             existing_user.status = status ? status : 0;
 
@@ -263,7 +267,7 @@ const get_quotation = async (req, res) => {
     const authorize = authorization(req);
     if (authorize) {
       const { id } = req?.params;
-      const quotation = await quotations?.findById(id);
+      const quotation = await quotations?.findById(id).populate("customer");
       if (quotation) {
         const quotation_detail = await quotation_details?.find({
           quotation_id: id,

@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
-const quotation_schema = new mongoose.Schema({
-  quote_number: {
+const invoice_schema = new mongoose.Schema({
+  invoice_number: {
     required: true,
     type: String,
   },
@@ -29,10 +29,10 @@ const quotation_schema = new mongoose.Schema({
     required: true,
     type: Number,
   },
-  quotation_status: {
+  invoice_status: {
     required: true,
     type: String,
-    /*{ Pending, Sent, Ordered }*/
+    /*{ Paid , Unpaid , Overdue }*/
   },
   status: {
     required: true,
@@ -61,4 +61,4 @@ const quotation_schema = new mongoose.Schema({
   },
 });
 
-module.exports = mongoose.model("quotations", quotation_schema, "quotations");
+module.exports = mongoose.model("invoice", invoice_schema, "invoice");
