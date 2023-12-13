@@ -289,7 +289,9 @@ const get_all_quotation = async (req, res) => {
   try {
     const authorize = authorization(req);
     if (authorize) {
-      const quotation = await quotations?.find({ branch: authorize?.branch });
+      const quotation = await quotations
+        ?.find({ branch: authorize?.branch, created: { $gte: date } })
+        .populate("customers");
       if (quotation) {
         success_200(res, "", quotation);
       } else {
