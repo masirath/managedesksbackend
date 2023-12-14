@@ -26,12 +26,14 @@ const branch = require("./Routes/branch");
 const customers = require("./Routes/customers");
 const items = require("./Routes/items");
 const quotations = require("./Routes/quotations");
+const invoice = require("./Routes/invoice");
 
 app.use(users);
 app.use(branch);
 app.use(customers);
 app.use(items);
 app.use(quotations);
+app.use(invoice);
 
 app.get("/", (req, res) => {
   res.send(`Working ${port} == 4000 Port`);
