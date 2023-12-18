@@ -12,14 +12,44 @@ const {
 } = require("../Global/errors");
 const { authorization } = require("../Global/authorization");
 
+const get_next_number = async (req, res, number) => {
+  try {
+    const authorize = authorization(req);
+    if (authorize) {
+      const total_invoice = await invoice.countDocuments({
+        branch: authorize?.branch,
+      });
+
+      const next_invoice_number = number + total_invoice;
+
+      const existing_invoice_number = await invoice.findOne({
+        invoice_number: next_invoice_number,
+        branch: authorize?.branch,
+      });
+
+      if (existing_invoice_number) {
+        return await get_next_number(req, res, next_invoice_number);
+      } else {
+        return next_invoice_number;
+      }
+    } else {
+      unauthorized(res);
+    }
+  } catch (errors) {
+    catch_400(res);
+  }
+};
+
 const get_create_invoice = async (req, res) => {
   try {
     const authorize = authorization(req);
     if (authorize) {
       const get_customers = await customers.find({ branch: authorize?.branch });
       const get_items = await items.find({ branch: authorize?.branch });
+      const invoice_number = await get_next_number(req, res, 1000);
 
       const data = {
+        invoice_number: invoice_number,
         customers: get_customers,
         items: get_items,
       };

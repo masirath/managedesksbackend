@@ -12,14 +12,44 @@ const {
 } = require("../Global/errors");
 const { authorization } = require("../Global/authorization");
 
+const get_next_number = async (req, res, number) => {
+  try {
+    const authorize = authorization(req);
+    if (authorize) {
+      const total_quotes = await quotations.countDocuments({
+        branch: authorize?.branch,
+      });
+
+      const next_quote_number = number + total_quotes;
+
+      const existing_quote_number = await quotations.findOne({
+        quote_number: next_quote_number,
+        branch: authorize?.branch,
+      });
+
+      if (existing_quote_number) {
+        return await get_next_number(req, res, next_quote_number);
+      } else {
+        return next_quote_number;
+      }
+    } else {
+      unauthorized(res);
+    }
+  } catch (errors) {
+    catch_400(res);
+  }
+};
+
 const get_create_quotation = async (req, res) => {
   try {
     const authorize = authorization(req);
     if (authorize) {
       const get_customers = await customers.find({ branch: authorize?.branch });
       const get_items = await items.find({ branch: authorize?.branch });
+      const quote_number = await get_next_number(req, res, 1000);
 
       const data = {
+        quote_number: quote_number,
         customers: get_customers,
         items: get_items,
       };
