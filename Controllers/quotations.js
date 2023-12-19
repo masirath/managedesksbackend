@@ -306,7 +306,7 @@ const get_quotation = async (req, res) => {
         const get_customer = await customers?.find({
           branch: authorize?.branch,
         });
-        const get_items = await customers?.find({ branch: authorize?.branch });
+        const get_items = await items?.find({ branch: authorize?.branch });
 
         const data = {
           quotation,
