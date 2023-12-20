@@ -103,17 +103,17 @@ const update_items = async (req, res) => {
           if (!item) {
             failed_400(res, "Item not found");
           } else {
-            name && (item.name = name);
-            unit && (item.unit = unit);
-            stock ? (item.stock = stock) : (item.stock = 0);
-            purchase_price && (item.purchase_price = purchase_price);
-            sale_price && (item.sale_price = sale_price);
-            tax ? (item.tax = tax) : (item.tax = 0);
-            category && (item.category = category);
-            brand && (item.brand = brand);
-            image && (item.image = image);
-            status ? (item.status = status) : (item.status = 0);
-            branch && (item.branch = branch);
+            item.name = name ? name : "";
+            item.unit = unit ? unit : "";
+            item.stock = stock ? stock : 0;
+            item.purchase_price = purchase_price ? purchase_price : 0;
+            item.sale_price = sale_price ? sale_price : 0;
+            item.tax = tax ? tax : 0;
+            item.category = category ? category : "";
+            item.brand = brand ? brand : "";
+            item.image = image ? image : "";
+            item.status = status ? status : 0;
+            item.branch = branch ? branch : item.branch;
 
             const dataToUpdata = await item.save();
             success_200(res, "Item Updated", dataToUpdata);

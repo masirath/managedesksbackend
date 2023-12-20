@@ -82,16 +82,16 @@ const update_customer = async (req, res) => {
         if (!customer) {
           failed_400(res, "User not found");
         } else {
-          name && (customer.name = name);
-          email && (customer.email = email);
-          phone && (customer.phone = phone);
-          area && (customer.area = area);
-          city && (customer.city = city);
-          state && (customer.state = state);
-          tax_number && (customer.tax_number = tax_number);
-          country && (customer.country = country);
-          status ? (customer.status = status) : (customer.status = 0);
-          branch && (customer.branch = branch);
+          customer.name = name ? name : "";
+          customer.email = email ? email : "";
+          customer.phone = phone ? phone : "";
+          customer.area = area ? area : "";
+          customer.city = city ? city : "";
+          customer.state = state ? state : "";
+          customer.tax_number = tax_number ? tax_number : "";
+          customer.country = country ? country : "";
+          customer.status = status ? status : 0;
+          customer.branch = branch ? branch : customer.branch;
           customer.updated = new Date();
 
           const dataToUpdate = await customer.save();

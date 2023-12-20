@@ -178,15 +178,15 @@ const update_user = async (req, res) => {
           } else if (existing_reference) {
             error_400(res, 402, "Reference number already exists");
           } else {
-            username && (user.username = username);
-            first_name && (user.first_name = first_name);
-            last_name && (user.last_name = last_name);
-            reference_no && (user.reference_no = reference_no);
-            email && (user.email = email);
-            phone && (user.phone = phone);
-            role && (user.role = role);
-            branch && (user.branch = branch);
-            status ? (user.status = status) : (user.status = 0);
+            user.username = username ? username : "";
+            user.first_name = first_name ? first_name : "";
+            user.last_name = last_name ? last_name : "";
+            user.reference_no = reference_no ? reference_no : "";
+            user.email = email ? email : "";
+            user.phone = phone ? phone : "";
+            user.role = role ? role : "";
+            user.branch = branch ? branch : user.branch;
+            user.status = status ? status : 0;
             user.updated = new Date();
 
             if (password) {
