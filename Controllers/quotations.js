@@ -233,7 +233,7 @@ const update_quotation = async (req, res) => {
             existing_user.customer = customer ? customer : "";
             existing_user.date_from = date_from ? date_from : "";
             existing_user.date_to = date_to ? date_to : "";
-            existing_user.branch = branch && branch;
+            existing_user.branch = branch ? branch : existing_user.branch;
             existing_user.total = total_amount;
             existing_user.tax_amount = tax_amount;
             existing_user.grand_total =
