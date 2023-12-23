@@ -11,10 +11,12 @@ const {
   failed_400,
 } = require("../Global/errors");
 const { authorization } = require("../Global/authorization");
+const { get_next_invoice } = require("./invoice");
 
-const get_next_number = async (req, res, number) => {
+const get_next_quotation = async (req, res, number) => {
   try {
     const authorize = authorization(req);
+
     if (authorize) {
       const total_quotes = await quotations.countDocuments({
         branch: authorize?.branch,
@@ -28,7 +30,7 @@ const get_next_number = async (req, res, number) => {
       });
 
       if (existing_quote_number) {
-        return await get_next_number(req, res, next_quote_number);
+        return await get_next_quotation(req, res, type, next_quote_number);
       } else {
         return next_quote_number;
       }
@@ -46,7 +48,7 @@ const get_create_quotation = async (req, res) => {
     if (authorize) {
       const get_customers = await customers.find({ branch: authorize?.branch });
       const get_items = await items.find({ branch: authorize?.branch });
-      const quote_number = await get_next_number(req, res, 1000);
+      const quote_number = await get_next_quotation(req, res, 1000);
 
       const data = {
         quote_number: quote_number,
@@ -307,8 +309,10 @@ const get_quotation = async (req, res) => {
           branch: authorize?.branch,
         });
         const get_items = await items?.find({ branch: authorize?.branch });
+        const invoice_number = await get_next_invoice(req, res, 1000);
 
         const data = {
+          invoice_number: invoice_number,
           quotation,
           quotation_detail,
           customers: get_customer,
@@ -335,7 +339,8 @@ const get_all_quotation = async (req, res) => {
         ?.find({
           branch: authorize?.branch,
         })
-        .populate("customer");
+        .populate("customer")
+        .populate({ path: "created_by", select: "-password" });
       if (quotation) {
         success_200(res, "", quotation);
       } else {

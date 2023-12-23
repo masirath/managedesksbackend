@@ -12,7 +12,7 @@ const {
 } = require("../Global/errors");
 const { authorization } = require("../Global/authorization");
 
-const get_next_number = async (req, res, number) => {
+const get_next_invoice = async (req, res, number) => {
   try {
     const authorize = authorization(req);
     if (authorize) {
@@ -28,7 +28,7 @@ const get_next_number = async (req, res, number) => {
       });
 
       if (existing_invoice_number) {
-        return await get_next_number(req, res, next_invoice_number);
+        return await get_next_invoice(req, res, next_invoice_number);
       } else {
         return next_invoice_number;
       }
@@ -46,7 +46,7 @@ const get_create_invoice = async (req, res) => {
     if (authorize) {
       const get_customers = await customers.find({ branch: authorize?.branch });
       const get_items = await items.find({ branch: authorize?.branch });
-      const invoice_number = await get_next_number(req, res, 1000);
+      const invoice_number = await get_next_invoice(req, res, 1000);
 
       const data = {
         invoice_number: invoice_number,
@@ -69,6 +69,7 @@ const create_invoice = async (req, res) => {
     if (authorize) {
       const {
         invoice_number,
+        quote,
         customer,
         date_from,
         date_to,
@@ -113,13 +114,15 @@ const create_invoice = async (req, res) => {
 
           const invoice_data = new invoice({
             invoice_number: invoice_number,
+            quote_number: quote_number,
             customer: customer,
             date_from: date_from,
             date_to: date_to,
             total: total_amount,
             tax_amount: tax_amount,
             grand_total: parseFloat(total_amount) + parseFloat(tax_amount),
-            invoice_status: "Unpaid",
+            invoice_status: "Pending",
+            payment_status: "Unpaid",
             status: status ? status : 0,
             ref: authorize?.ref,
             branch: authorize?.branch,
@@ -237,7 +240,8 @@ const update_invoice = async (req, res) => {
             existing_user.tax_amount = tax_amount;
             existing_user.grand_total =
               parseFloat(total_amount) + parseFloat(tax_amount);
-            existing_user.invoice_status = "Unpaid";
+            existing_user.invoice_status = "Pending";
+            existing_user.payment_status = "Unpaid";
             existing_user.status = status ? status : 0;
 
             const dataToUpdate = await existing_user.save();
@@ -335,6 +339,7 @@ const get_all_invoice = async (req, res) => {
           branch: authorize?.branch,
         })
         .populate("customer")
+        .populate("quotations")
         .populate({ path: "created_by", select: "-password" });
       if (invoice_data) {
         success_200(res, "", invoice_data);
@@ -350,6 +355,7 @@ const get_all_invoice = async (req, res) => {
 };
 
 module.exports = {
+  get_next_invoice,
   get_create_invoice,
   create_invoice,
   update_invoice,
