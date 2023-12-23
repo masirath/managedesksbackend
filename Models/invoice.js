@@ -5,6 +5,10 @@ const invoice_schema = new mongoose.Schema({
     required: true,
     type: String,
   },
+  quote_number: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "quotations",
+  },
   customer: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "customers",
@@ -30,6 +34,11 @@ const invoice_schema = new mongoose.Schema({
     type: Number,
   },
   invoice_status: {
+    required: true,
+    type: String,
+    /*{ Pending , Sent , Delivered }*/
+  },
+  payment_status: {
     required: true,
     type: String,
     /*{ Paid , Unpaid , Overdue }*/
