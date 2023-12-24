@@ -69,7 +69,6 @@ const create_invoice = async (req, res) => {
     if (authorize) {
       const {
         invoice_number,
-        quote,
         customer,
         date_from,
         date_to,
@@ -114,7 +113,6 @@ const create_invoice = async (req, res) => {
 
           const invoice_data = new invoice({
             invoice_number: invoice_number,
-            quote_number: quote_number,
             customer: customer,
             date_from: date_from,
             date_to: date_to,
@@ -339,7 +337,7 @@ const get_all_invoice = async (req, res) => {
           branch: authorize?.branch,
         })
         .populate("customer")
-        .populate("quotations")
+        .populate("quote_number")
         .populate({ path: "created_by", select: "-password" });
       if (invoice_data) {
         success_200(res, "", invoice_data);
