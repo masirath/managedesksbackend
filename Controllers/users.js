@@ -91,14 +91,20 @@ const create_user = async (req, res) => {
       if (!username || !password || !first_name || !role) {
         incomplete_400(res);
       } else {
-        const existing_username = await users.findOne({
+        const existing_username = await users?.findOne({
           username: username,
         });
 
-        const existing_reference = await users.findOne({
-          reference_no: { $ne: "", $eq: reference_no },
-          branch: authorize?.branch,
-        });
+        let existing_reference;
+
+        if (reference_no) {
+          existing_reference = await users?.findOne({
+            reference_no: { $ne: "", $eq: reference_no },
+            branch: authorize?.branch,
+          });
+        } else {
+          existing_reference = false;
+        }
 
         if (existing_username) {
           error_400(res, 401, "Username already exists");
@@ -167,11 +173,16 @@ const update_user = async (req, res) => {
             _id: { $ne: id },
           });
 
-          const existing_reference = await users.findOne({
-            reference_no: { $ne: "", $eq: reference_no },
-            _id: { $ne: id },
-            branch: authorize?.branch,
-          });
+          let existing_reference;
+
+          if (reference_no) {
+            existing_reference = await users?.findOne({
+              reference_no: { $ne: "", $eq: reference_no },
+              branch: authorize?.branch,
+            });
+          } else {
+            existing_reference = false;
+          }
 
           if (existing_username) {
             error_400(res, 401, "Username already exists");
