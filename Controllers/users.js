@@ -99,6 +99,7 @@ const create_user = async (req, res) => {
 
         if (reference_no) {
           existing_reference = await users?.findOne({
+            _id: { $ne: id },
             reference_no: { $ne: "", $eq: reference_no },
             branch: authorize?.branch,
           });
@@ -177,6 +178,7 @@ const update_user = async (req, res) => {
 
           if (reference_no) {
             existing_reference = await users?.findOne({
+              _id: { $ne: id },
               reference_no: { $ne: "", $eq: reference_no },
               branch: authorize?.branch,
             });
