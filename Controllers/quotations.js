@@ -12,6 +12,8 @@ const {
 } = require("../Global/errors");
 const { authorization } = require("../Global/authorization");
 const { get_next_invoice } = require("./invoice");
+const invoice = require("../Models/invoice");
+const invoice_details = require("../Models/invoice_details");
 
 const get_next_quotation = async (req, res, number) => {
   try {
@@ -74,6 +76,7 @@ const create_quotation = async (req, res) => {
         customer,
         date_from,
         date_to,
+        quotation_status,
         status,
         branch,
         details,
@@ -104,9 +107,10 @@ const create_quotation = async (req, res) => {
 
             if (item) {
               total_amount +=
-                parseFloat(value?.quantity) * parseFloat(item?.sale_price);
+                parseFloat(value?.quantity) *
+                parseFloat(value?.data?.sale_price);
               tax_amount +=
-                parseFloat(item?.sale_price) *
+                parseFloat(value?.data?.sale_price) *
                 parseFloat(value?.quantity) *
                 parseFloat(item?.tax / 100);
             } else {
@@ -122,7 +126,7 @@ const create_quotation = async (req, res) => {
             total: total_amount,
             tax_amount: tax_amount,
             grand_total: parseFloat(total_amount) + parseFloat(tax_amount),
-            quotation_status: "Pending",
+            quotation_status: quotation_status,
             status: status ? status : 0,
             ref: authorize?.ref,
             branch: authorize?.branch,
@@ -143,15 +147,17 @@ const create_quotation = async (req, res) => {
                 item_name: item?.name,
                 item_unit: item?.unit,
                 item_quantity: value?.quantity,
-                item_price: item?.sale_price,
+                item_price: value?.data?.sale_price,
                 amount:
-                  parseFloat(item?.sale_price) * parseFloat(value?.quantity),
+                  parseFloat(value?.data?.sale_price) *
+                  parseFloat(value?.quantity),
                 item_discount: 0,
                 discount_amount: 0,
                 item_tax: item?.tax,
                 total:
-                  (parseFloat(item?.sale_price) +
-                    (parseFloat(item?.sale_price) * parseFloat(item?.tax)) /
+                  (parseFloat(value?.data?.sale_price) +
+                    (parseFloat(value?.data?.sale_price) *
+                      parseFloat(item?.tax)) /
                       100) *
                   parseFloat(value?.quantity),
               });
@@ -221,9 +227,10 @@ const update_quotation = async (req, res) => {
 
               if (item) {
                 total_amount +=
-                  parseFloat(value?.quantity) * parseFloat(item?.sale_price);
+                  parseFloat(value?.quantity) *
+                  parseFloat(value?.data?.sale_price);
                 tax_amount +=
-                  parseFloat(item?.sale_price) *
+                  parseFloat(value?.data?.sale_price) *
                   parseFloat(value?.quantity) *
                   parseFloat(item?.tax / 100);
               } else {
@@ -259,15 +266,17 @@ const update_quotation = async (req, res) => {
                   item_name: item?.name,
                   item_unit: item?.unit,
                   item_quantity: value?.quantity,
-                  item_price: item?.sale_price,
+                  item_price: value?.data?.sale_price,
                   amount:
-                    parseFloat(item?.sale_price) * parseFloat(value?.quantity),
+                    parseFloat(value?.data?.sale_price) *
+                    parseFloat(value?.quantity),
                   item_discount: 0,
                   discount_amount: 0,
                   item_tax: item?.tax,
                   total:
-                    (parseFloat(item?.sale_price) +
-                      (parseFloat(item?.sale_price) * parseFloat(item?.tax)) /
+                    (parseFloat(value?.data?.sale_price) +
+                      (parseFloat(value?.data?.sale_price) *
+                        parseFloat(item?.tax)) /
                         100) *
                     parseFloat(value?.quantity),
                 });
@@ -279,6 +288,75 @@ const update_quotation = async (req, res) => {
             }
             success_200(res, "Quotation Updated");
           }
+        } else {
+          failed_400(res, "Quotation not found");
+        }
+      }
+    } else {
+      unauthorized(res);
+    }
+  } catch (errors) {
+    catch_400(res, errors?.message);
+  }
+};
+const order_quotation = async (req, res) => {
+  try {
+    const authorize = authorization(req);
+    if (authorize) {
+      const { id } = req?.body;
+
+      if (!id) {
+        incomplete_400(res);
+      } else {
+        const quotation = await quotations?.findOne({ _id: id });
+        const quotationDetails = await quotation_details?.find({
+          quotation_id: id,
+        });
+        const invoice_number = await get_next_invoice(req, res, 1000);
+
+        if (quotation && quotationDetails?.length > 0) {
+          quotation.quotation_status = "Ordered";
+          const quotationToUpdate = await quotation?.save();
+
+          const invoice_data = new invoice({
+            invoice_number: invoice_number,
+            quote_number: quotation?._id,
+            customer: quotation?.customer,
+            date_from: quotation?.date_from,
+            date_to: quotation?.date_to,
+            total: quotation?.total,
+            tax_amount: quotation?.tax_amount,
+            grand_total: quotation?.grand_total,
+            invoice_status: "Pending",
+            payment_status: "Unpaid",
+            status: 1,
+            ref: authorize?.ref,
+            branch: authorize?.branch,
+            created: new Date(),
+            updated: new Date(),
+            created_by: authorize?.id,
+          });
+
+          const invoiceToSave = await invoice_data?.save();
+
+          for (const value of quotationDetails) {
+            const invoiceDetails = new invoice_details({
+              invoice_id: invoiceToSave?._id,
+              item_id: value?.item_id,
+              item_name: value?.item_name,
+              item_unit: value?.item_unit,
+              item_quantity: value?.item_quantity,
+              item_price: value?.item_price,
+              amount: value?.amount,
+              item_discount: 0,
+              discount_amount: 0,
+              item_tax: value?.tax,
+              total: value?.total,
+            });
+            const detailsToSave = await invoiceDetails.save();
+          }
+
+          success_200(res, "Invoice Created");
         } else {
           failed_400(res, "Quotation not found");
         }
@@ -360,4 +438,5 @@ module.exports = {
   update_quotation,
   get_quotation,
   get_all_quotation,
+  order_quotation,
 };
