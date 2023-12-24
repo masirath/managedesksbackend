@@ -126,7 +126,7 @@ const create_quotation = async (req, res) => {
             total: total_amount,
             tax_amount: tax_amount,
             grand_total: parseFloat(total_amount) + parseFloat(tax_amount),
-            quotation_status: quotation_status,
+            quotation_status: quotation_status ? quotation_status : "Pending",
             status: status ? status : 0,
             ref: authorize?.ref,
             branch: authorize?.branch,
