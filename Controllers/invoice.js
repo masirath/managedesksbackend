@@ -337,7 +337,10 @@ const get_all_invoice = async (req, res) => {
           branch: authorize?.branch,
         })
         .populate("customer")
-        .populate("quote_number")
+        .populate({
+          path: "quote_number",
+          populate: { path: "created_by", select: "-password" },
+        })
         .populate({ path: "created_by", select: "-password" });
       if (invoice_data) {
         success_200(res, "", invoice_data);
