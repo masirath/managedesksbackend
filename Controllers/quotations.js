@@ -193,6 +193,7 @@ const update_quotation = async (req, res) => {
         customer,
         date_from,
         date_to,
+        quotation_status,
         status,
         branch,
         details,
@@ -247,7 +248,9 @@ const update_quotation = async (req, res) => {
             existing_user.tax_amount = tax_amount;
             existing_user.grand_total =
               parseFloat(total_amount) + parseFloat(tax_amount);
-            existing_user.quotation_status = "Pending";
+            existing_user.quotation_status = quotation_status
+              ? quotation_status
+              : existing_user.quotation_status;
             existing_user.status = status ? status : 0;
 
             const dataToUpdate = await existing_user.save();
