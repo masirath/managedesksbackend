@@ -329,7 +329,7 @@ const order_quotation = async (req, res) => {
             date_from: quotation?.date_from,
             date_to: quotation?.date_to,
             total: quotation?.total,
-            tax_amount: quotation?.tax,
+            tax_amount: quotation?.tax_amount,
             grand_total: quotation?.grand_total,
             invoice_status: "Pending",
             payment_status: "Unpaid",
@@ -354,7 +354,7 @@ const order_quotation = async (req, res) => {
               amount: value?.amount,
               item_discount: 0,
               discount_amount: 0,
-              item_tax: value?.tax,
+              item_tax: value?.item_tax,
               total: value?.total,
             });
             const detailsToSave = await invoiceDetails.save();
