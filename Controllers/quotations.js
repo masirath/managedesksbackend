@@ -329,7 +329,7 @@ const order_quotation = async (req, res) => {
             date_from: quotation?.date_from,
             date_to: quotation?.date_to,
             total: quotation?.total,
-            tax_amount: quotation?.tax_amount,
+            tax_amount: quotation?.tax,
             grand_total: quotation?.grand_total,
             invoice_status: "Pending",
             payment_status: "Unpaid",
