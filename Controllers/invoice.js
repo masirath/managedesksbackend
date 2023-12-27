@@ -119,8 +119,8 @@ const create_invoice = async (req, res) => {
             total: total_amount,
             tax_amount: tax_amount,
             grand_total: parseFloat(total_amount) + parseFloat(tax_amount),
-            invoice_status: "Pending",
-            payment_status: "Unpaid",
+            invoice_status: invoice_status ? invoice_status : "Pending",
+            payment_status: payment_status ? payment_status : "Unpaid",
             status: status ? status : 0,
             ref: authorize?.ref,
             branch: authorize?.branch,
@@ -238,8 +238,12 @@ const update_invoice = async (req, res) => {
             existing_user.tax_amount = tax_amount;
             existing_user.grand_total =
               parseFloat(total_amount) + parseFloat(tax_amount);
-            existing_user.invoice_status = "Pending";
-            existing_user.payment_status = "Unpaid";
+            existing_user.invoice_status = invoice_status
+              ? invoice_status
+              : "Pending";
+            existing_user.payment_status = payment_status
+              ? payment_status
+              : "Unpaid";
             existing_user.status = status ? status : 0;
 
             const dataToUpdate = await existing_user.save();
