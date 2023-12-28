@@ -72,6 +72,7 @@ const create_invoice = async (req, res) => {
         customer,
         date_from,
         date_to,
+        invoice_status,
         status,
         branch,
         details,
@@ -81,6 +82,7 @@ const create_invoice = async (req, res) => {
         !customer ||
         !date_from ||
         !date_to ||
+        !invoice_status ||
         details?.length <= 0
       ) {
         incomplete_400(res);
@@ -185,6 +187,7 @@ const update_invoice = async (req, res) => {
         customer,
         date_from,
         date_to,
+        invoice_status,
         status,
         branch,
         details,
@@ -196,6 +199,7 @@ const update_invoice = async (req, res) => {
         !customer ||
         !date_from ||
         !date_to ||
+        !invoice_status ||
         details?.length <= 0
       ) {
         incomplete_400(res);
