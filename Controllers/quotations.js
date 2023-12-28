@@ -87,6 +87,7 @@ const create_quotation = async (req, res) => {
         !customer ||
         !date_from ||
         !date_to ||
+        !quotation_status ||
         details?.length <= 0
       ) {
         incomplete_400(res);
@@ -205,6 +206,7 @@ const update_quotation = async (req, res) => {
         !customer ||
         !date_from ||
         !date_to ||
+        !quotation_status ||
         details?.length <= 0
       ) {
         incomplete_400(res);
