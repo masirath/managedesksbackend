@@ -36,12 +36,17 @@ const invoice_schema = new mongoose.Schema({
   invoice_status: {
     required: true,
     type: String,
-    /*{ Pending , Sent , Delivered }*/
+    /* { Pending , Sent , Delivered } */
   },
   payment_status: {
     required: true,
     type: String,
-    /*{ Paid , Unpaid , Overdue }*/
+    /* { Paid , Unpaid } */
+  },
+  received_amount: {
+    required: true,
+    type: Number,
+    default: 0,
   },
   status: {
     required: true,

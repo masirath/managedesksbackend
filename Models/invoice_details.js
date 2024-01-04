@@ -21,6 +21,11 @@ const invoice_details_schema = new mongoose.Schema({
     required: true,
     type: Number,
   },
+  received_quantity: {
+    required: true,
+    type: Number,
+    default: 0,
+  },
   item_price: {
     required: true,
     type: Number,
