@@ -1,5 +1,6 @@
 const invoice = require("../Models/invoice");
 const invoice_details = require("../Models/invoice_details");
+const invoice_payment = require("../Models/invoice_payment");
 const customers = require("../Models/customers");
 const items = require("../Models/items");
 const {
@@ -144,6 +145,7 @@ const create_invoice = async (req, res) => {
                 item_name: item?.name,
                 item_unit: item?.unit,
                 item_quantity: value?.quantity,
+                received_quantity: 0,
                 item_price: item?.sale_price,
                 amount:
                   parseFloat(item?.sale_price) * parseFloat(value?.quantity),
@@ -155,6 +157,7 @@ const create_invoice = async (req, res) => {
                     (parseFloat(item?.sale_price) * parseFloat(item?.tax)) /
                       100) *
                   parseFloat(value?.quantity),
+                received_amount: 0,
               });
 
               const detailsToSave = await invoiceDetails.save();
@@ -268,6 +271,7 @@ const update_invoice = async (req, res) => {
                   item_name: item?.name,
                   item_unit: item?.unit,
                   item_quantity: value?.quantity,
+                  received_quantity: 0,
                   item_price: item?.sale_price,
                   amount:
                     parseFloat(item?.sale_price) * parseFloat(value?.quantity),
@@ -279,6 +283,7 @@ const update_invoice = async (req, res) => {
                       (parseFloat(item?.sale_price) * parseFloat(item?.tax)) /
                         100) *
                     parseFloat(value?.quantity),
+                  received_amount: 0,
                 });
 
                 const detailsToSave = await invoiceDetails.save();
@@ -365,6 +370,148 @@ const get_all_invoice = async (req, res) => {
   }
 };
 
+const create_invoice_payment = async (req, res) => {
+  try {
+    const authorize = authorization(req);
+    if (authorize) {
+      const { invoice_id, amount, type, payment_status, status } = req?.body;
+      if (!invoice_id || !amount || !type) {
+        incomplete_400(res);
+      } else {
+        const existing_invoice = await invoice.findById(invoice_id);
+
+        if (existing_invoice) {
+          if (
+            parseFloat(amount) + parseFloat(existing_invoice.received_amount) <=
+            parseFloat(existing_invoice?.grand_total)
+          ) {
+            const payment = new invoice_payment({
+              invoice_id: invoice_id,
+              amount: amount ? amount : 0,
+              type: type,
+              payment_status: "Received",
+              status: status ? status : 0,
+              ref: authorize?.ref,
+              branch: authorize?.branch,
+              created: new Date(),
+              updated: new Date(),
+              created_by: authorize?.id,
+              updated_by: authorize?.id,
+            });
+
+            existing_invoice.received_amount =
+              parseFloat(existing_invoice.received_amount) + parseFloat(amount);
+
+            if (
+              parseFloat(existing_invoice.received_amount) ==
+              parseFloat(existing_invoice.grand_total)
+            ) {
+              existing_invoice.payment_status = "Paid";
+            }
+
+            const invoicePaymentSave = await payment.save();
+            const invoiceToUpdate = await existing_invoice.save();
+            if (invoicePaymentSave && invoiceToUpdate) {
+              success_200(res, "Payment created");
+            } else {
+              failed_400(res, "Payment not created");
+            }
+          } else {
+            failed_400(res, "Invalid amount");
+          }
+        } else {
+          failed_400(res, "Invoice not found");
+        }
+      }
+    } else {
+      unauthorized(res);
+    }
+  } catch (errors) {
+    catch_400(res, errors?.message);
+  }
+};
+
+const update_invoice_payment = async (req, res) => {
+  try {
+    const authorize = authorization(req);
+    if (authorize) {
+      const { id, invoice_id, amount, type, payment_status, status } =
+        req?.body;
+      if (!id || !invoice_id || !amount || !type) {
+        incomplete_400(res);
+      } else {
+        const existing_invoice = await invoice.findById(invoice_id);
+
+        if (existing_invoice) {
+          const existing_invoice_payment = await invoice_payment?.findById(id);
+          if (existing_invoice_payment) {
+            existing_invoice.received_amount =
+              parseFloat(existing_invoice.received_amount) -
+              parseFloat(existing_invoice_payment.amount);
+
+            const inoiceToSave = await existing_invoice.save();
+
+            if (inoiceToSave) {
+              if (
+                parseFloat(amount) +
+                  parseFloat(existing_invoice.received_amount) <=
+                parseFloat(existing_invoice?.grand_total)
+              ) {
+                if (existing_invoice_payment) {
+                  existing_invoice_payment.invoice_id = invoice_id;
+                  existing_invoice_payment.amount = amount ? amount : 0;
+                  existing_invoice_payment.type = type;
+                  existing_invoice_payment.payment_status = "Received";
+                  existing_invoice_payment.status = status ? status : 0;
+                  existing_invoice_payment.ref = authorize?.ref;
+                  existing_invoice_payment.branch = authorize?.branch;
+                  existing_invoice_payment.created = new Date();
+                  existing_invoice_payment.updated = new Date();
+                  existing_invoice_payment.updated_by = authorize?.id;
+
+                  existing_invoice.received_amount =
+                    parseFloat(existing_invoice.received_amount) +
+                    parseFloat(amount);
+
+                  if (
+                    parseFloat(existing_invoice.received_amount) ==
+                    parseFloat(existing_invoice.grand_total)
+                  ) {
+                    existing_invoice.payment_status = "Paid";
+                  }
+
+                  const invoicePaymentUpdate =
+                    await existing_invoice_payment.save();
+                  const invoiceToUpdate = await existing_invoice.save();
+                  if (invoicePaymentUpdate) {
+                    success_200(res, "Payment updated");
+                  } else {
+                    failed_400(res, "Payment not updated");
+                  }
+                } else {
+                  failed_400(res, "Payment not found");
+                }
+              } else {
+                failed_400(res, "Invalid amount");
+              }
+            } else {
+              failed_400(res, "Invoice not updated");
+            }
+          } else {
+            failed_400(res, "Invoice payment not found");
+          }
+        } else {
+          failed_400(res, "Invoice not found");
+        }
+      }
+    } else {
+      unauthorized(res);
+    }
+  } catch (errors) {
+    catch_400(res, errors?.message);
+  }
+};
+
 module.exports = {
   get_next_invoice,
   get_create_invoice,
@@ -372,4 +519,6 @@ module.exports = {
   update_invoice,
   get_invoice,
   get_all_invoice,
+  create_invoice_payment,
+  update_invoice_payment,
 };

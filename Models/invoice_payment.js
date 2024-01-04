@@ -1,46 +1,23 @@
 const mongoose = require("mongoose");
 
-const deliveries_schema = new mongoose.Schema({
-  delivery_number: {
-    required: true,
-    type: String,
-  },
+const invoice_payment_schema = new mongoose.Schema({
   invoice_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "invoice",
   },
-  po_id: {
-    required: false,
+  amount: {
+    required: true,
+    type: Number,
+    default: 0,
+  },
+  type: {
+    required: true,
     type: String,
   },
-  customer: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "customers",
-  },
-  delivered_by: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "users",
-  },
-  date: {
-    required: true,
-    type: Date,
-  },
-  total: {
-    required: true,
-    type: Number,
-  },
-  tax_amount: {
-    required: true,
-    type: Number,
-  },
-  delivery_status: {
+  payment_status: {
     required: true,
     type: String,
-    /*{ Pending , Delivered }*/
-  },
-  grand_total: {
-    required: true,
-    type: Number,
+    /*{ Pending , Received }*/
   },
   status: {
     required: true,
@@ -67,6 +44,14 @@ const deliveries_schema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "users",
   },
+  updated_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "users",
+  },
 });
 
-module.exports = mongoose.model("deliveries", deliveries_schema, "deliveries");
+module.exports = mongoose.model(
+  "invoice_payment",
+  invoice_payment_schema,
+  "invoice_payment"
+);

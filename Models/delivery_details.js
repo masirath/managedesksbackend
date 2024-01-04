@@ -5,9 +5,13 @@ const delivery_details_schema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "deliveries",
   },
+  invoice_detail_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "invoice_details",
+  },
   item_id: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: " items",
+    ref: "items",
   },
   item_name: {
     required: true,

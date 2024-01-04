@@ -87,7 +87,6 @@ const create_quotation = async (req, res) => {
         !customer ||
         !date_from ||
         !date_to ||
-        !quotation_status ||
         details?.length <= 0
       ) {
         incomplete_400(res);
@@ -108,10 +107,9 @@ const create_quotation = async (req, res) => {
 
             if (item) {
               total_amount +=
-                parseFloat(value?.quantity) *
-                parseFloat(value?.data?.sale_price);
+                parseFloat(value?.quantity) * parseFloat(value?.sale_price);
               tax_amount +=
-                parseFloat(value?.data?.sale_price) *
+                parseFloat(value?.sale_price) *
                 parseFloat(value?.quantity) *
                 parseFloat(item?.tax / 100);
             } else {
@@ -148,17 +146,15 @@ const create_quotation = async (req, res) => {
                 item_name: item?.name,
                 item_unit: item?.unit,
                 item_quantity: value?.quantity,
-                item_price: value?.data?.sale_price,
+                item_price: value?.sale_price,
                 amount:
-                  parseFloat(value?.data?.sale_price) *
-                  parseFloat(value?.quantity),
+                  parseFloat(value?.sale_price) * parseFloat(value?.quantity),
                 item_discount: 0,
                 discount_amount: 0,
                 item_tax: item?.tax,
                 total:
-                  (parseFloat(value?.data?.sale_price) +
-                    (parseFloat(value?.data?.sale_price) *
-                      parseFloat(item?.tax)) /
+                  (parseFloat(value?.sale_price) +
+                    (parseFloat(value?.sale_price) * parseFloat(item?.tax)) /
                       100) *
                   parseFloat(value?.quantity),
               });
@@ -230,10 +226,9 @@ const update_quotation = async (req, res) => {
 
               if (item) {
                 total_amount +=
-                  parseFloat(value?.quantity) *
-                  parseFloat(value?.data?.sale_price);
+                  parseFloat(value?.quantity) * parseFloat(value?.sale_price);
                 tax_amount +=
-                  parseFloat(value?.data?.sale_price) *
+                  parseFloat(value?.sale_price) *
                   parseFloat(value?.quantity) *
                   parseFloat(item?.tax / 100);
               } else {
@@ -271,17 +266,15 @@ const update_quotation = async (req, res) => {
                   item_name: item?.name,
                   item_unit: item?.unit,
                   item_quantity: value?.quantity,
-                  item_price: value?.data?.sale_price,
+                  item_price: value?.sale_price,
                   amount:
-                    parseFloat(value?.data?.sale_price) *
-                    parseFloat(value?.quantity),
+                    parseFloat(value?.sale_price) * parseFloat(value?.quantity),
                   item_discount: 0,
                   discount_amount: 0,
                   item_tax: item?.tax,
                   total:
-                    (parseFloat(value?.data?.sale_price) +
-                      (parseFloat(value?.data?.sale_price) *
-                        parseFloat(item?.tax)) /
+                    (parseFloat(value?.sale_price) +
+                      (parseFloat(value?.sale_price) * parseFloat(item?.tax)) /
                         100) *
                     parseFloat(value?.quantity),
                 });
