@@ -349,12 +349,12 @@ const get_all_invoice = async (req, res) => {
     const { search, date_from } = req?.body;
 
     if (authorize) {
+      let query = { branch: authorize?.branch };
+      date_from && (query.date_from = { $gte: new Date(date_from) });
+      search && (query.invoice_number = { $regex: search, $options: "i" });
+
       const invoice_data = await invoice
-        ?.find({
-          invoice_number: { $regex: search, $options: "i" },
-          date_from: { $gte: new Date(date_from) },
-          branch: authorize?.branch,
-        })
+        ?.find(query)
         .populate({ path: "customer", select: ["name"] })
         .populate({
           path: "quote_number",
