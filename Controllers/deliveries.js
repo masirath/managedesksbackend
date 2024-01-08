@@ -221,7 +221,10 @@ const create_deliveries = async (req, res) => {
                 }
               }
 
-              if (existing_invoice_details?.length == received_quantity) {
+              if (
+                existing_invoice_details?.length == received_quantity &&
+                delivery_status == "Delivered"
+              ) {
                 existing_invoice.invoice_status = "Delivered";
                 const dataToUpdate = await existing_invoice.save();
                 success_200(res, "Delivered");
@@ -410,7 +413,10 @@ const update_deliveries = async (req, res) => {
                   }
                 }
 
-                if (existing_delivery_details?.length == received_quantity) {
+                if (
+                  existing_delivery_details?.length == received_quantity &&
+                  delivery_status == "Delivered"
+                ) {
                   existing_invoice.invoice_status = "Delivered";
                   const dataToUpdate = await existing_invoice.save();
                   success_200(res, "Delivered");
@@ -443,16 +449,29 @@ const get_deliveries = async (req, res) => {
     const authorize = authorization(req);
     if (authorize) {
       const { id } = req?.params;
-      const delivery = await deliveries?.findById(id)?.populate("customer");
+      const delivery = await deliveries?.findById(id)?.populate({
+        path: "delivered_by",
+        select: ["_id", "first_name", "last_name", "invoice_id"],
+      });
 
       if (delivery) {
         const delieryDetails = await delivery_details?.find({
           delivery_id: id,
         });
 
+        const invoice_detail = await invoice_details?.find({
+          invoice_id: delivery?.invoice_id,
+        });
+
+        const user = await users
+          ?.find({ branch: authorize?.branch })
+          .select(["_id", "first_name", "last_name"]);
+
         const data = {
           delivery,
           delieryDetails,
+          user,
+          invoice_detail,
         };
         success_200(res, "", data);
       } else {
