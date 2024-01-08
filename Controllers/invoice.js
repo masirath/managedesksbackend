@@ -346,17 +346,22 @@ const get_all_invoice = async (req, res) => {
   try {
     const authorize = authorization(req);
 
+    const { search, date_from } = req?.body;
+
     if (authorize) {
       const invoice_data = await invoice
         ?.find({
+          invoice_number: { $regex: search, $options: "i" },
+          date_from: { $gte: new Date(date_from) },
           branch: authorize?.branch,
         })
-        .populate("customer")
+        .populate({ path: "customer", select: ["name"] })
         .populate({
           path: "quote_number",
+          select: ["quote_number", "created_by"],
           populate: { path: "created_by", select: "-password" },
         })
-        .populate({ path: "created_by", select: "-password" });
+        .populate({ path: "created_by", select: ["first_name", "last_name"] });
       if (invoice_data) {
         success_200(res, "", invoice_data);
       } else {
