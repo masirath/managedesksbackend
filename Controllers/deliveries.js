@@ -449,10 +449,14 @@ const get_deliveries = async (req, res) => {
     const authorize = authorization(req);
     if (authorize) {
       const { id } = req?.params;
-      const delivery = await deliveries?.findById(id)?.populate({
-        path: "delivered_by",
-        select: ["_id", "first_name", "last_name", "invoice_id"],
-      });
+      const delivery = await deliveries
+        ?.findById(id)
+        ?.populate({
+          path: "delivered_by",
+          select: ["_id", "first_name", "last_name", "invoice_id"],
+        })
+        .populate("customer")
+        .populate("invoice_id");
 
       if (delivery) {
         const delieryDetails = await delivery_details?.find({
