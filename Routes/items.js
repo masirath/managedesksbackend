@@ -7,9 +7,9 @@ const {
   get_all_items,
 } = require("../Controllers/items");
 
-items.post("/create-item", create_items);
-items.post("/update-item", update_items);
-items.get("/get-item/:id", get_item);
-items.get("/get-all-items", get_all_items);
+items.post("/api/create-item", create_items);
+items.post("/api/update-item", update_items);
+items.get("/api/get-item/:id", get_item);
+items.get("/api/get-all-items", get_all_items);
 
 module.exports = items;
