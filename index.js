@@ -2,8 +2,8 @@ require("dotenv").config();
 const cors = require("cors");
 const express = require("express");
 const mongoose = require("mongoose");
-const port = process.env.PRODUCTIONPORT;
-const mongodb = process.env.PRODUCTIONDATABASE;
+const port = process.env.PRODUCTION_PORT;
+const mongodb = process.env.PRODUCTION_DATABASE;
 
 mongoose.connect(mongodb);
 const database = mongoose.connection;
