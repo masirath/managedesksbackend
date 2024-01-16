@@ -2,8 +2,8 @@ require("dotenv").config();
 const cors = require("cors");
 const express = require("express");
 const mongoose = require("mongoose");
-const mongodb = process.env.DATABASE;
-const port = process.env.PORT;
+const mongodb = process.env.DEVELOPMENTDATABASE;
+const port = process.env.DEVELOPMENTPORT;
 
 mongoose.connect(mongodb);
 const database = mongoose.connection;
@@ -36,10 +36,6 @@ app.use(items);
 app.use(quotations);
 app.use(invoice);
 app.use(deliveries);
-
-app.get("/", (req, res) => {
-  res.send(`Working ${port} == 4000 Port`);
-});
 
 app.listen(port, () => {
   console.log(`Server Started at ${port}`);
