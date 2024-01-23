@@ -152,9 +152,14 @@ const get_all_items = async (req, res) => {
   try {
     const authorize = authorization(req);
 
+    const { search } = req?.body;
+
     if (authorize) {
-      const itemsList = await items?.find({ branch: authorize?.branch });
-      success_200(res, "", itemsList);
+      const itemsList = { branch: authorize?.branch };
+      search && (itemsList.name = { $regex: search, $options: "i" });
+
+      const allItems = await items?.find(itemsList);
+      success_200(res, "", allItems);
     } else {
       unauthorized(res);
     }
