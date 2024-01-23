@@ -43,6 +43,7 @@ const items = require("./Routes/items");
 const quotations = require("./Routes/quotations");
 const invoice = require("./Routes/invoice");
 const deliveries = require("./Routes/deliveries");
+const website = require("./Routes/website");
 
 app.use(users);
 app.use(branch);
@@ -51,6 +52,7 @@ app.use(items);
 app.use(quotations);
 app.use(invoice);
 app.use(deliveries);
+app.use(website);
 
 app.listen(port, () => {
   console.log(`Server Started at ${port}`);

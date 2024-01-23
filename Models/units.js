@@ -1,29 +1,9 @@
 const mongoose = require("mongoose");
 
-const expenses_schema = new mongoose.Schema({
-  expenses_category: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "expense_categorys",
-  },
-  amount: {
+const units_schema = new mongoose.Schema({
+  name: {
     required: true,
     type: String,
-  },
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "users",
-  },
-  description: {
-    required: false,
-    type: String,
-  },
-  file: {
-    required: false,
-    type: String,
-  },
-  date: {
-    required: true,
-    type: Date,
   },
   status: {
     required: true,
@@ -52,4 +32,4 @@ const expenses_schema = new mongoose.Schema({
   },
 });
 
-module.exports = mongoose.model("expenses", expenses_schema, "expenses");
+module.exports = mongoose.model("units", units_schema, "units");
