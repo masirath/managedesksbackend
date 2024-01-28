@@ -36,6 +36,7 @@ app.use(cors());
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
+const website = require("./Routes/website");
 const users = require("./Routes/users");
 const branch = require("./Routes/branch");
 const customers = require("./Routes/customers");
@@ -43,8 +44,9 @@ const items = require("./Routes/items");
 const quotations = require("./Routes/quotations");
 const invoice = require("./Routes/invoice");
 const deliveries = require("./Routes/deliveries");
-const website = require("./Routes/website");
+const suppliers = require("./Routes/supplier");
 
+app.use(website);
 app.use(users);
 app.use(branch);
 app.use(customers);
@@ -52,7 +54,7 @@ app.use(items);
 app.use(quotations);
 app.use(invoice);
 app.use(deliveries);
-app.use(website);
+app.use(suppliers);
 
 app.listen(port, () => {
   console.log(`Server Started at ${port}`);
