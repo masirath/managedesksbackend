@@ -314,6 +314,16 @@ const verify_user = async (req, res) => {
   }
 };
 
+const get_user_ip = async (req, res) => {
+  try {
+    const ipAddress = req.ip || req.ips[0] || req.connection.remoteAddress;
+
+    success_200(res, "", ipAddress);
+  } catch (errors) {
+    catch_400(res, errors?.message);
+  }
+};
+
 module.exports = {
   create_account,
   create_user,
@@ -321,4 +331,5 @@ module.exports = {
   get_user,
   get_all_user,
   verify_user,
+  get_user_ip,
 };
