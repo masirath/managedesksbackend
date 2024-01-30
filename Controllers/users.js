@@ -316,9 +316,21 @@ const verify_user = async (req, res) => {
 
 const get_user_ip = async (req, res) => {
   try {
-    const ipAddress = req.ip || req.ips[0] || req.connection.remoteAddress;
+    let ipAddress =
+      req.headers["x-forwarded-for"] ||
+      req.headers["x-real-ip"] ||
+      req.connection.remoteAddress ||
+      req.socket.remoteAddress ||
+      req.connection.socket.remoteAddress;
 
-    success_200(res, "", ipAddress);
+    if (ipAddress && ipAddress.includes(",")) {
+      ipAddress = ipAddress.split(",")[0];
+    }
+
+    const ipv4Match = ipAddress.match(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/);
+    const ipv4Address = ipv4Match ? ipv4Match[0] : null;
+
+    success_200(res, "", ipv4Address);
   } catch (errors) {
     catch_400(res, errors?.message);
   }
