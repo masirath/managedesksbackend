@@ -8,7 +8,6 @@ const {
   success_200,
 } = require("../Global/errors");
 const { find } = require("../Models/suppliers");
-const users = require("../Models/users");
 const items = require("../Models/items");
 const suppliers = require("../Models/suppliers");
 const purchase_details = require("../Models/purchase_details");
@@ -46,9 +45,8 @@ const get_create_purchase = async (req, res) => {
   try {
     const authorize = authorization(req);
     if (authorize) {
-      const get_user = await users.find({
+      const get_supplier = await suppliers.find({
         branch: authorize?.branch,
-        role: { $ne: "SUPERADMIN" },
       });
       const get_items = await items.find({ branch: authorize?.branch });
       const purchase_number = await get_next_purchase(req, res, 1000);
@@ -56,7 +54,7 @@ const get_create_purchase = async (req, res) => {
       const data = {
         purchase_number: purchase_number,
         items: get_items,
-        users: get_user,
+        suppliers: get_supplier,
       };
 
       success_200(res, "", data);
