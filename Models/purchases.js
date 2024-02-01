@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
 const purchases_schema = new mongoose.Schema({
-  purchase_order_number: {
+  purchase_number: {
     required: true,
     type: String,
   },
@@ -9,8 +9,48 @@ const purchases_schema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "suppliers",
   },
-  date: {
+  supplier_name: {
     required: true,
+    type: String,
+  },
+  supplier_email: {
+    required: false,
+    type: String,
+  },
+  supplier_phone: {
+    required: false,
+    type: String,
+  },
+  supplier_area: {
+    required: false,
+    type: String,
+  },
+  supplier_city: {
+    required: false,
+    type: String,
+  },
+  supplier_state: {
+    required: false,
+    type: String,
+  },
+  supplier_country: {
+    required: true,
+    type: String,
+  },
+  supplier_tax: {
+    required: false,
+    type: String,
+  },
+  reference: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "users",
+  },
+  date_from: {
+    required: true,
+    type: Date,
+  },
+  date_to: {
+    required: false,
     type: Date,
   },
   total: {

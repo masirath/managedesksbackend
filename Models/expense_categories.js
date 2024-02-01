@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const expense_categorys_schema = new mongoose.Schema({
+const expense_categories_schema = new mongoose.Schema({
   name: {
     required: true,
     type: String,
@@ -30,10 +30,14 @@ const expense_categorys_schema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "users",
   },
+  updated_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "users",
+  },
 });
 
 module.exports = mongoose.model(
-  "expense_categorys",
-  expense_categorys_schema,
-  "expense_categorys"
+  "expense_categories",
+  expense_categories_schema,
+  "expense_categories"
 );

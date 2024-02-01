@@ -1,9 +1,9 @@
 const mongoose = require("mongoose");
 
-const invoice_details_schema = new mongoose.Schema({
-  invoice_id: {
+const purchase_details_schema = new mongoose.Schema({
+  purchase_id: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "invoice",
+    ref: "purchases",
   },
   item_id: {
     type: mongoose.Schema.Types.ObjectId,
@@ -20,11 +20,6 @@ const invoice_details_schema = new mongoose.Schema({
   item_quantity: {
     required: true,
     type: Number,
-  },
-  received_quantity: {
-    required: true,
-    type: Number,
-    default: 0,
   },
   item_price: {
     required: true,
@@ -53,7 +48,7 @@ const invoice_details_schema = new mongoose.Schema({
 });
 
 module.exports = mongoose.model(
-  "invoice_details",
-  invoice_details_schema,
-  "invoice_details"
+  "purchase_details",
+  purchase_details_schema,
+  "purchase_details"
 );

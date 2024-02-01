@@ -162,7 +162,7 @@ const create_invoice = async (req, res) => {
 
               const detailsToSave = await invoiceDetails.save();
             } else {
-              failed_400(res, "Item not found");
+              failed_400(res, "Details Item not found");
             }
           }
 

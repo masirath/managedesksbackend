@@ -9,9 +9,13 @@ const expenses_schema = new mongoose.Schema({
     required: true,
     type: String,
   },
-  user: {
+  reference: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "users",
+  },
+  date: {
+    required: true,
+    type: Date,
   },
   description: {
     required: false,
@@ -20,10 +24,6 @@ const expenses_schema = new mongoose.Schema({
   file: {
     required: false,
     type: String,
-  },
-  date: {
-    required: true,
-    type: Date,
   },
   status: {
     required: true,
@@ -47,6 +47,10 @@ const expenses_schema = new mongoose.Schema({
     type: Date,
   },
   created_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "users",
+  },
+  updated_by: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "users",
   },
