@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const expenses_schema = new mongoose.Schema({
+const invoice_details_schema = new mongoose.Schema({
   invoice_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "invoice",
@@ -52,4 +52,8 @@ const expenses_schema = new mongoose.Schema({
   },
 });
 
-module.exports = mongoose.model("expenses", expenses_schema, "expenses");
+module.exports = mongoose.model(
+  "invoice_details",
+  invoice_details_schema,
+  "invoice_details"
+);

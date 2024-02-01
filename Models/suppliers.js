@@ -25,11 +25,11 @@ const suppliers_schema = new mongoose.Schema({
     required: false,
     type: String,
   },
-  tax_number: {
+  country: {
     required: false,
     type: String,
   },
-  country: {
+  tax_number: {
     required: false,
     type: String,
   },

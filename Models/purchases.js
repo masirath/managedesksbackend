@@ -21,10 +21,6 @@ const purchases_schema = new mongoose.Schema({
     required: false,
     type: String,
   },
-  supplier_tax: {
-    required: true,
-    type: String,
-  },
   supplier_area: {
     required: false,
     type: String,
@@ -34,11 +30,15 @@ const purchases_schema = new mongoose.Schema({
     type: String,
   },
   supplier_state: {
-    required: true,
+    required: false,
     type: String,
   },
   supplier_country: {
     required: true,
+    type: String,
+  },
+  supplier_tax: {
+    required: false,
     type: String,
   },
   reference: {
@@ -50,7 +50,7 @@ const purchases_schema = new mongoose.Schema({
     type: Date,
   },
   date_to: {
-    required: true,
+    required: false,
     type: Date,
   },
   total: {
