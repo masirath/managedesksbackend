@@ -178,13 +178,13 @@ const create_purchase = async (req, res) => {
                 } else {
                   failed_400(res, "Details Item not found");
                 }
-
-                const dataToSave = {
-                  purchaseToSave,
-                };
-
-                success_200(res, "Purchase Created");
               }
+
+              const dataToSave = {
+                purchaseToSave,
+              };
+
+              success_200(res, "Purchase Created");
             } else {
               failed_400(res, "Purchase not created");
             }
