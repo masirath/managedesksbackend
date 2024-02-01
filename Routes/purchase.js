@@ -11,7 +11,7 @@ const {
 purchases.get("/api/get-create-purchase", get_create_purchase);
 purchases.post("/api/create-purchase", create_purchase);
 purchases.post("/api/update-purchase", update_purchase);
-purchases.get("/api/get-puchase/:id", get_purchase);
+purchases.get("/api/get-purchase/:id", get_purchase);
 purchases.get("/api/get-all-purchases", get_all_purchases);
 
 module.exports = purchases;
