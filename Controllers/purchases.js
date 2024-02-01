@@ -371,7 +371,7 @@ const get_purchase = async (req, res) => {
         .populate({ path: "created_by", select: "-password" });
       if (purchase_data) {
         const purchase_detail = await purchase_details?.find({
-          purchase_number: id,
+          purchase_id: id,
         });
 
         const get_suppliers = await suppliers?.find({
