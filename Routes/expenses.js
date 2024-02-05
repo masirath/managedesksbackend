@@ -10,12 +10,14 @@ const {
   update_expense,
   get_expense,
   get_all_expenses,
+  get_create_expense,
 } = require("../Controllers/expenses");
 
 expenses.post("/api/create-expense-category", create_expense_category);
 expenses.post("/api/update-expense-category", update_expense_category);
 expenses.get("/api/get-expense-category/:id", get_expense_category);
 expenses.get("/api/get-all-expense-categories", get_all_expense_categories);
+expenses.get("/api/get-create-expenses", get_create_expense);
 expenses.post("/api/create-expense", create_expense);
 expenses.post("/api/update-expense", update_expense);
 expenses.get("/api/get-expense/:id", get_expense);
