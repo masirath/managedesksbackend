@@ -9,6 +9,7 @@ const {
 const { authorization } = require("../Global/authorization");
 const expenses = require("../Models/expenses");
 const expense_categories = require("../Models/expense_categories");
+const users = require("../Models/users");
 
 const create_expense_category = async (req, res) => {
   try {
@@ -141,9 +142,16 @@ const get_create_expense = async (req, res) => {
       const allCategories = await expense_categories?.find({
         branch: authorize?.branch,
       });
+      const allUsers = await users
+        ?.find({
+          branch: authorize?.branch,
+          role: { $ne: "SUPERADMIN" },
+        })
+        .select("-password");
 
       const data = {
         categories: allCategories,
+        users: allUsers,
       };
       success_200(res, "", data);
     } else {
@@ -261,12 +269,20 @@ const get_expense = async (req, res) => {
       const allCategories = await expense_categories?.find({
         branch: authorize?.branch,
       });
+      const allUsers = await users
+        ?.find({
+          branch: authorize?.branch,
+          role: { $ne: "SUPERADMIN" },
+        })
+        .select("-password");
+
       if (!expense) {
         failed_400(res, "Expense not found");
       } else {
         const data = {
           expense: expense,
           categories: allCategories,
+          users: allUsers,
         };
         success_200(res, "", data);
       }
