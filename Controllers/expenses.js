@@ -134,6 +134,26 @@ const get_all_expense_categories = async (req, res) => {
   }
 };
 
+const get_create_expense = async (req, res) => {
+  try {
+    const authorize = authorization(req);
+    if (authorize) {
+      const allCategories = await expense_categories?.find({
+        branch: authorize?.branch,
+      });
+
+      const data = {
+        categories: allCategories,
+      };
+      success_200(res, "", data);
+    } else {
+      unauthorized(res);
+    }
+  } catch (errors) {
+    catch_400(res, errors?.message);
+  }
+};
+
 const create_expense = async (req, res) => {
   try {
     const authorize = authorization(req);
@@ -238,10 +258,17 @@ const get_expense = async (req, res) => {
       const { id } = req?.params;
 
       const expense = await expenses?.findById(id);
+      const allCategories = await expense_categories?.find({
+        branch: authorize?.branch,
+      });
       if (!expense) {
         failed_400(res, "Expense not found");
       } else {
-        success_200(res, "", expense);
+        const data = {
+          expense: expense,
+          categories: allCategories,
+        };
+        success_200(res, "", data);
       }
     } else {
       unauthorized(res);
@@ -275,6 +302,7 @@ module.exports = {
   update_expense_category,
   get_expense_category,
   get_all_expense_categories,
+  get_create_expense,
   create_expense,
   update_expense,
   get_expense,
