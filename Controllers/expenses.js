@@ -126,6 +126,7 @@ const get_all_expense_categories = async (req, res) => {
       search && (categoryList.name = { $regex: search, $options: "i" });
 
       const allCategory = await expense_categories?.find(categoryList);
+
       success_200(res, "", allCategory);
     } else {
       unauthorized(res);
@@ -167,7 +168,7 @@ const create_expense = async (req, res) => {
     const authorize = authorization(req);
     if (authorize) {
       const {
-        expense_categories,
+        expenses_category,
         amount,
         reference,
         date,
@@ -177,11 +178,11 @@ const create_expense = async (req, res) => {
         branch,
       } = req?.body;
 
-      if (!expense_categories || !amount || !reference || !date) {
+      if (!expenses_category || !amount || !reference || !date) {
         incomplete_400(res);
       } else {
         const expense = new expenses({
-          expense_categories: expense_categories,
+          expenses_category: expenses_category,
           amount: amount ? amount : 0,
           reference: reference,
           date: date,
@@ -214,7 +215,7 @@ const update_expense = async (req, res) => {
     if (authorize) {
       const {
         id,
-        expense_categories,
+        expenses_category,
         amount,
         reference,
         date,
@@ -224,14 +225,14 @@ const update_expense = async (req, res) => {
         branch,
       } = req?.body;
 
-      if (!id || !expense_categories || !amount || !reference || !date) {
+      if (!id || !expenses_category || !amount || !reference || !date) {
         incomplete_400(res);
       } else {
         const expense = await expenses?.findById(id);
 
         if (expense) {
-          expense.expense_categories = expense_categories
-            ? expense_categories
+          expense.expenses_category = expenses_category
+            ? expenses_category
             : "";
           expense.amount = amount ? amount : 0;
           expense.reference = reference ? reference : "";
@@ -303,7 +304,10 @@ const get_all_expenses = async (req, res) => {
       const expencesList = { branch: authorize?.branch };
       search && (expencesList.name = { $regex: search, $options: "i" });
 
-      const allExpenses = await expenses?.find(expencesList);
+      const allExpenses = await expenses
+        ?.find(expencesList)
+        .populate({ path: "reference", select: ["first_name", "last_name"] })
+        .populate({ path: "expenses_category", select: ["name"] });
       success_200(res, "", allExpenses);
     } else {
       unauthorized(res);
