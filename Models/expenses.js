@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const expenses_schema = new mongoose.Schema({
   expenses_category: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "expense_categorys",
+    ref: "expense_categories",
   },
   amount: {
     required: true,
