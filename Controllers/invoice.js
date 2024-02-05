@@ -346,7 +346,7 @@ const get_all_invoice = async (req, res) => {
   try {
     const authorize = authorization(req);
 
-    const { search } = req?.body;
+    const { search, date_from } = req?.body;
 
     if (authorize) {
       let query = { branch: authorize?.branch };
