@@ -266,7 +266,9 @@ const get_expense = async (req, res) => {
     if (authorize) {
       const { id } = req?.params;
 
-      const expense = await expenses?.findById(id);
+      const expense = await expenses
+        ?.findById(id)
+        .populate({ path: "expenses_category", select: ["name"] });
       const allCategories = await expense_categories?.find({
         branch: authorize?.branch,
       });
