@@ -8,8 +8,8 @@ const website = require("../Models/website");
 
 const create_website_quote = async (req, res) => {
   try {
-    const { name, email, company, phone, date } = req?.body;
-    if (!name || !email || !company || !phone) {
+    const { name, email, company, phone, requirement } = req?.body;
+    if (!name || !email || !company || !phone || !requirement) {
       incomplete_400(res);
     } else {
       const quote = new website({
@@ -17,6 +17,7 @@ const create_website_quote = async (req, res) => {
         email: email,
         company: company,
         phone: phone,
+        requirement: requirement,
         date: new Date(),
       });
 
