@@ -13,12 +13,12 @@ const port =
     ? process.env.DEVELOPMENT_PORT
     : "";
 
-const mongodb = process.env.DEVELOPMENT_DATABASE;
-Environment === "PRODUCTION"
-  ? process.env.PRODUCTION_DATABASE
-  : Environment === "DEVELOPMENT"
-  ? process.env.DEVELOPMENT_DATABASE
-  : "";
+const mongodb =
+  Environment === "PRODUCTION"
+    ? process.env.PRODUCTION_DATABASE
+    : Environment === "DEVELOPMENT"
+    ? process.env.DEVELOPMENT_DATABASE
+    : "";
 
 mongoose.connect(mongodb);
 const database = mongoose.connection;
