@@ -3,8 +3,8 @@ const cors = require("cors");
 const express = require("express");
 const mongoose = require("mongoose");
 
-const Environment = "PRODUCTION";
-// const Environment = "DEVELOPMENT";
+// const Environment = "PRODUCTION";
+const Environment = "DEVELOPMENT";
 
 const port =
   Environment === "PRODUCTION"
