@@ -1,0 +1,26 @@
+[
+    {
+      "name":"sales"
+    },
+    {
+      "name":"invoice"
+    },
+    {
+      "name":"Quote"
+    },
+    {
+     "name":"Delivery order"
+    },
+    {
+      "name":"Purchase"
+    },
+    {
+      "name":"Purchase Order"
+    },
+    {
+      "name":"Purchase Inward"
+    },
+    {
+      "name":"Purchase Returns"
+    }
+]

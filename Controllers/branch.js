@@ -8,14 +8,15 @@ const {
 
 const create_branch = async (req, res) => {
   try {
-    const { name, email, phone, ref, zip, street, city, state, country } =
+    const { name, email, phone, ref, zip, area, city, state, country } =
       req?.body;
 
-    if (!name || !ref || !zip || !street || !city || !country) {
+    if (!name || !ref || !zip || !area || !city || !country) {
       return res.status(400).json(incomplete_400());
     }
 
     const existing_email = await branch.findOne({ email: email });
+
     if (existing_email) {
       return res.status(400).json(failed_400("Email already exists"));
     }
@@ -31,7 +32,7 @@ const create_branch = async (req, res) => {
       phone: phone,
       ref: ref,
       zip: zip,
-      street: street,
+      area: area,
       city: city,
       state: state,
       country: country,
