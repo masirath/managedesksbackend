@@ -28,7 +28,7 @@ database.on("error", (error) => {
 });
 
 database.once("connected", () => {
-  console.log(`Database Connected ${mongodb}`);
+  console.log(`Database Connected`);
 });
 
 const app = express();
@@ -47,6 +47,8 @@ const deliveries = require("./Routes/deliveries");
 const suppliers = require("./Routes/supplier");
 const purchases = require("./Routes/purchase");
 const expenses = require("./Routes/expenses");
+const data = require("./Routes/data");
+const roles = require("./Routes/roles");
 
 app.use(website);
 app.use(users);
@@ -59,6 +61,8 @@ app.use(deliveries);
 app.use(suppliers);
 app.use(purchases);
 app.use(expenses);
+app.use(data);
+app.use(roles);
 
 app.listen(port, () => {
   console.log(`Server Started at ${port}`);

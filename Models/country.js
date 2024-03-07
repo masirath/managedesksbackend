@@ -5,11 +5,11 @@ const country_schema = mongoose.Schema({
     required: true,
     type: String,
   },
-  name: {
+  country: {
     required: true,
     type: String,
   },
-  country_code: {
+  currency: {
     required: true,
     type: String,
   },

@@ -1,0 +1,1486 @@
+[
+    {
+        "country": "Afghanistan",
+        "currency": "Afghan afghani",
+        "symbol": "Af",
+        "code": "AFN",
+        "unit": "Pul"     
+    },
+    {
+        "country": "Albania",
+        "currency": "Albanian lek",
+        "symbol": "Lek",
+        "code": "ALL",
+        "unit": "Qintar"
+    },
+    {
+        "country": "Algeria",
+        "currency": "Algerian dinar",
+        "symbol": "DA",
+        "code": "DZD",
+        "unit": "Santeem"
+    },
+    {
+        "country": "Andorra",
+        "currency": "Euro",
+        "symbol": "€",
+        "code": "EUR",
+        "unit": "Cent"
+    },
+    {
+        "country": "Angola",
+        "currency": "Angolan kwanza",
+        "symbol": "Kz",
+        "code": "AOA",
+        "unit": "Cêntimo"
+    },
+    {
+        "country": "Anguilla",
+        "currency": "Eastern Caribbean dollar",
+        "symbol": "$",
+        "code": "XCD",
+        "unit": "Cent"
+    },
+    {
+        "country": "Antigua and Barbuda",
+        "currency": "Eastern Caribbean dollar",
+        "symbol": "$",
+        "code": "XCD",
+        "unit": "Cent"
+    },
+    {
+        "country": "Argentina",
+        "currency": "Argentine peso",
+        "symbol": "$",
+        "code": "ARS",
+        "unit": "Centavo"
+    },
+    {
+        "country": "Armenia",
+        "currency": "Armenian dram",
+        "symbol": "֏",
+        "code": "AMD",
+        "unit": "Luma"
+    },
+    {
+        "country": "Aruba",
+        "currency": "Aruban florin",
+        "symbol": "ƒ",
+        "code": "AWG",
+        "unit": "Cent"
+    },
+    {
+        "country": "Australia",
+        "currency": "Australian dollar",
+        "symbol": "$",
+        "code": "AUD",
+        "unit": "Cent"
+    },
+    {
+        "country": "Austria",
+        "currency": "Euro",
+        "symbol": "€",
+        "code": "EUR",
+        "unit": "Cent"
+    },
+    {
+        "country": "Azerbaijan",
+        "currency": "Azerbaijani manat",
+        "symbol": "₼",
+        "code": "AZN",
+        "unit": "Qəpik"
+    },
+    {
+        "country": "Bahamas, The",
+        "currency": "Bahamian dollar",
+        "symbol": "$",
+        "code": "BSD",
+        "unit": "Cent"
+    },
+    {
+        "country": "Bahrain",
+        "currency": "Bahraini dinar",
+        "symbol": "BD",
+        "code": "BHD",
+        "unit": "Fils"
+    },
+    {
+        "country": "Bangladesh",
+        "currency": "Bangladeshi taka",
+        "symbol": "৳",
+        "code": "BDT",
+        "unit": "Poisha"
+    },
+    {
+        "country": "Barbados",
+        "currency": "Barbadian dollar",
+        "symbol": "$",
+        "code": "BBD",
+        "unit": "Cent"
+    },
+    {
+        "country": "Belarus",
+        "currency": "Belarusian rubel",
+        "symbol": "Rbl",
+        "code": "BYN",
+        "unit": "Copeck"
+    },
+    {
+        "country": "Belgium",
+        "currency": "Euro",
+        "symbol": "€",
+        "code": "EUR",
+        "unit": "Cent"
+    },
+    {
+        "country": "Belize",
+        "currency": "Belize dollar",
+        "symbol": "$",
+        "code": "BZD",
+        "unit": "Cent"
+    },
+    {
+        "country": "Benin",
+        "currency": "West African CFA franc",
+        "symbol": "Fr",
+        "code": "XOF",
+        "unit": "Centime"
+    },
+    {
+        "country": "Bermuda",
+        "currency": "Bermudian dollar",
+        "symbol": "$",
+        "code": "BMD",
+        "unit": "Cent"
+    },
+    {
+        "country": "Bhutan",
+        "currency": "Bhutanese ngultrum",
+        "symbol": "Nu",
+        "code": "BTN",
+        "unit": "Chetrum"
+    },
+    {
+        "country": "Bolivia",
+        "currency": "Bolivian boliviano",
+        "symbol": "Bs",
+        "code": "BOB",
+        "unit": "Centavo"
+    },
+    {
+        "country": "Bonaire",
+        "currency": "United States dollar[F]",
+        "symbol": "$",
+        "code": "USD",
+        "unit": "Cent"
+    },
+    {
+        "country": "Bosnia and Herzegovina",
+        "currency": "Bosnia and Herzegovina convertible mark",
+        "symbol": "KM",
+        "code": "BAM",
+        "unit": "Fening"
+    },
+    {
+        "country": "Botswana",
+        "currency": "Botswana pula",
+        "symbol": "P",
+        "code": "BWP",
+        "unit": "Thebe"
+    },
+    {
+        "country": "Brazil",
+        "currency": "Brazilian real",
+        "symbol": "R$",
+        "code": "BRL",
+        "unit": "Centavo"
+    },
+    {
+        "country": "Brunei",
+        "currency": "Brunei dollar",
+        "symbol": "$",
+        "code": "BND",
+        "unit": "Sen"
+    },
+    {
+        "country": "Bulgaria",
+        "currency": "Bulgarian lev",
+        "symbol": "Lev",
+        "code": "BGN",
+        "unit": "Stotinka"
+    },
+    {
+        "country": "Burkina Faso",
+        "currency": "West African CFA franc",
+        "symbol": "Fr",
+        "code": "XOF",
+        "unit": "Centime"
+    },
+    {
+        "country": "Burundi",
+        "currency": "Burundian franc",
+        "symbol": "Fr",
+        "code": "BIF",
+        "unit": "Centime"
+    },
+    {
+        "country": "Cambodia",
+        "currency": "Cambodian riel",
+        "symbol": "CR",
+        "code": "KHR",
+        "unit": "Sen"
+    },
+    {
+        "country": "Cameroon",
+        "currency": "Central African CFA franc",
+        "symbol": "Fr",
+        "code": "XAF",
+        "unit": "Centime"
+    },
+    {
+        "country": "Canada",
+        "currency": "Canadian dollar",
+        "symbol": "$",
+        "code": "CAD",
+        "unit": "Cent"
+    },
+    {
+        "country": "Cape Verde",
+        "currency": "Cape Verdean escudo",
+        "symbol": "$",
+        "code": "CVE",
+        "unit": "Centavo"
+    },
+    {
+        "country": "Cayman Islands",
+        "currency": "Cayman Islands dollar",
+        "symbol": "$",
+        "code": "KYD",
+        "unit": "Cent"
+    },
+    {
+        "country": "Central African Republic",
+        "currency": "Central African CFA franc",
+        "symbol": "Fr",
+        "code": "XAF",
+        "unit": "Centime"
+    },
+    {
+        "country": "Chad",
+        "currency": "Central African CFA franc",
+        "symbol": "Fr",
+        "code": "XAF",
+        "unit": "Centime"
+    },
+    {
+        "country": "Chile",
+        "currency": "Chilean peso",
+        "symbol": "$",
+        "code": "CLP",
+        "unit": "Centavo"
+    },
+    {
+        "country": "China, People's Republic of",
+        "currency": "Renminbi",
+        "symbol": "¥",
+        "code": "CNY",
+        "unit": "Jiao"
+    },
+    {
+        "country": "Colombia",
+        "currency": "Colombian peso",
+        "symbol": "$",
+        "code": "COP",
+        "unit": "Centavo"
+    },
+    {
+        "country": "Comoros",
+        "currency": "Comorian franc",
+        "symbol": "Fr",
+        "code": "KMF",
+        "unit": "Centime"
+    },
+    {
+        "country": "Congo, Democratic Republic of the",
+        "currency": "Congolese franc",
+        "symbol": "Fr",
+        "code": "CDF",
+        "unit": "Centime"
+    },
+    {
+        "country": "Congo, Republic of the",
+        "currency": "Central African CFA franc",
+        "symbol": "Fr",
+        "code": "XAF",
+        "unit": "Centime"
+    },
+    {
+        "country": "Cook Islands",
+        "currency": "New Zealand dollar",
+        "symbol": "$",
+        "code": "NZD",
+        "unit": "Cent"
+    },
+    {
+        "country": "Costa Rica",
+        "currency": "Costa Rican colón",
+        "symbol": "₡",
+        "code": "CRC",
+        "unit": "Céntimo"
+    },
+    {
+        "country": "Côte d'Ivoire",
+        "currency": "West African CFA franc",
+        "symbol": "Fr",
+        "code": "XOF",
+        "unit": "Centime"
+    },
+    {
+        "country": "Croatia",
+        "currency": "Croatian kuna",
+        "symbol": "kn",
+        "code": "HRK",
+        "unit": "Lipa"
+    },
+    {
+        "country": "Cuba",
+        "currency": "Cuban peso",
+        "symbol": "$",
+        "code": "CUP",
+        "unit": "Centavo"
+    },
+    {
+        "country": "Curaçao",
+        "currency": "Netherlands Antillean guilder",
+        "symbol": "ƒ",
+        "code": "ANG",
+        "unit": "Cent"
+    },
+    {
+        "country": "Cyprus",
+        "currency": "Euro",
+        "symbol": "€",
+        "code": "EUR",
+        "unit": "Cent"
+    },
+    {
+        "country": "Czech Republic",
+        "currency": "Czech koruna",
+        "symbol": "Kč",
+        "code": "CZK",
+        "unit": "Heller"
+    },
+    {
+        "country": "Denmark",
+        "currency": "Danish krone",
+        "symbol": "kr",
+        "code": "DKK",
+        "unit": "Øre"
+    },
+    {
+        "country": "Djibouti",
+        "currency": "Djiboutian franc",
+        "symbol": "Fr",
+        "code": "DJF",
+        "unit": "Centime"
+    },
+    {
+        "country": "Dominica",
+        "currency": "Eastern Caribbean dollar",
+        "symbol": "$",
+        "code": "XCD",
+        "unit": "Cent"
+    },
+    {
+        "country": "Dominican Republic",
+        "currency": "Dominican peso",
+        "symbol": "$",
+        "code": "DOP",
+        "unit": "Centavo"
+    },
+    {
+        "country": "East Timor",
+        "currency": "United States dollar",
+        "symbol": "$",
+        "code": "USD",
+        "unit": "Centavo"
+    },
+    {
+        "country": "Ecuador",
+        "currency": "United States dollar",
+        "symbol": "$",
+        "code": "USD",
+        "unit": "Centavo"
+    },
+    {
+        "country": "Egypt",
+        "currency": "Egyptian pound",
+        "symbol": "LE",
+        "code": "EGP",
+        "unit": "Piastre"
+    },
+    {
+        "country": "El Salvador",
+        "currency": "United States dollar",
+        "symbol": "$",
+        "code": "USD",
+        "unit": "Cent"
+    },
+    {
+        "country": "Equatorial Guinea",
+        "currency": "Central African CFA franc",
+        "symbol": "Fr",
+        "code": "XAF",
+        "unit": "Centime"
+    },
+    {
+        "country": "Eritrea",
+        "currency": "Eritrean nakfa",
+        "symbol": "Nkf",
+        "code": "ERN",
+        "unit": "Cent"
+    },
+    {
+        "country": "Estonia",
+        "currency": "Euro",
+        "symbol": "€",
+        "code": "EUR",
+        "unit": "Cent"
+    },
+    {
+        "country": "Eswatini",
+        "currency": "Swazi lilangeni",
+        "symbol": "E",
+        "code": "SZL",
+        "unit": "Cent"
+    },
+    {
+        "country": "Ethiopia",
+        "currency": "Ethiopian birr",
+        "symbol": "Br",
+        "code": "ETB",
+        "unit": "Santim"
+    },
+    {
+        "country": "Faroe Islands",
+        "currency": "Danish krone",
+        "symbol": "kr",
+        "code": "DKK",
+        "unit": "Øre"
+    },
+    {
+        "country": "Fiji",
+        "currency": "Fijian dollar",
+        "symbol": "$",
+        "code": "FJD",
+        "unit": "Cent"
+    },
+    {
+        "country": "Finland",
+        "currency": "Euro",
+        "symbol": "€",
+        "code": "EUR",
+        "unit": "Sentti"
+    },
+    {
+        "country": "France",
+        "currency": "Euro",
+        "symbol": "€",
+        "code": "EUR",
+        "unit": "Cent"
+    },
+    {
+        "country": "French Polynesia",
+        "currency": "CFP franc",
+        "symbol": "Fr",
+        "code": "XPF",
+        "unit": "Centime"
+    },
+    {
+        "country": "Gabon",
+        "currency": "Central African CFA franc",
+        "symbol": "Fr",
+        "code": "XAF",
+        "unit": "Centime"
+    },
+    {
+        "country": "Gambia, The",
+        "currency": "Gambian dalasi",
+        "symbol": "D",
+        "code": "GMD",
+        "unit": "Butut"
+    },
+    {
+        "country": "Georgia",
+        "currency": "Georgian lari",
+        "symbol": "₾",
+        "code": "GEL",
+        "unit": "Tetri"
+    },
+    {
+        "country": "Germany",
+        "currency": "Euro",
+        "symbol": "€",
+        "code": "EUR",
+        "unit": "Cent"
+    },
+    {
+        "country": "Ghana",
+        "currency": "Ghanaian cedi",
+        "symbol": "₵",
+        "code": "GHS",
+        "unit": "Pesewa"
+    },
+    {
+        "country": "Gibraltar",
+        "currency": "Gibraltar pound",
+        "symbol": "£",
+        "code": "GIP",
+        "unit": "Penny"
+    },
+    {
+        "country": "Greece",
+        "currency": "Euro",
+        "symbol": "€",
+        "code": "EUR",
+        "unit": "Cent"
+    },
+    {
+        "country": "Greenland",
+        "currency": "Danish krone",
+        "symbol": "kr",
+        "code": "DKK",
+        "unit": "Øre"
+    },
+    {
+        "country": "Grenada",
+        "currency": "Eastern Caribbean dollar",
+        "symbol": "$",
+        "code": "XCD",
+        "unit": "Cent"
+    },
+    {
+        "country": "Guatemala",
+        "currency": "Guatemalan quetzal",
+        "symbol": "Q",
+        "code": "GTQ",
+        "unit": "Centavo"
+    },
+    {
+        "country": "Guinea",
+        "currency": "Guinean franc",
+        "symbol": "Fr",
+        "code": "GNF",
+        "unit": "Centime"
+    },
+    {
+        "country": "Guinea-Bissau",
+        "currency": "West African CFA franc",
+        "symbol": "Fr",
+        "code": "XOF",
+        "unit": "Centime"
+    },
+    {
+        "country": "Guyana",
+        "currency": "Guyanese dollar",
+        "symbol": "$",
+        "code": "GYD",
+        "unit": "Cent"
+    },
+    {
+        "country": "Haiti",
+        "currency": "Haitian gourde",
+        "symbol": "G",
+        "code": "HTG",
+        "unit": "Centime"
+    },
+    {
+        "country": "Honduras",
+        "currency": "Honduran lempira",
+        "symbol": "L",
+        "code": "HNL",
+        "unit": "Centavo"
+    },
+    {
+        "country": "Hong Kong",
+        "currency": "Hong Kong dollar",
+        "symbol": "$",
+        "code": "HKD",
+        "unit": "Cent"
+    },
+    {
+        "country": "Hungary",
+        "currency": "Hungarian forint",
+        "symbol": "Ft",
+        "code": "HUF",
+        "unit": "Fillér"
+    },
+    {
+        "country": "Iceland",
+        "currency": "Icelandic króna",
+        "symbol": "kr",
+        "code": "ISK",
+        "unit": "Eyrir"
+    },
+    {
+        "country": "India",
+        "currency": "Indian rupee",
+        "symbol": "₹",
+        "code": "INR",
+        "unit": "Paisa"
+    },
+    {
+        "country": "Indonesia",
+        "currency": "Indonesian rupiah",
+        "symbol": "Rp",
+        "code": "IDR",
+        "unit": "Sen"
+    },
+    {
+        "country": "Iran",
+        "currency": "Iranian rial",
+        "symbol": "Rl",
+        "code": "IRR",
+        "unit": "Rial"
+    },
+    {
+        "country": "Iraq",
+        "currency": "Iraqi dinar",
+        "symbol": "ID",
+        "code": "IQD",
+        "unit": "Fils"
+    },
+    {
+        "country": "Ireland",
+        "currency": "Euro",
+        "symbol": "€",
+        "code": "EUR",
+        "unit": "Cent"
+    },
+    {
+        "country": "Isle of Man",
+        "currency": "Sterling",
+        "symbol": "£",
+        "code": "GBP",
+        "unit": "Penny"
+    },
+    {
+        "country": "Israel",
+        "currency": "Israeli new shekel",
+        "symbol": "₪",
+        "code": "ILS",
+        "unit": "Agora"
+    },
+    {
+        "country": "Italy",
+        "currency": "Euro",
+        "symbol": "€",
+        "code": "EUR",
+        "unit": "Cent"
+    },
+    {
+        "country": "Jamaica",
+        "currency": "Jamaican dollar",
+        "symbol": "$",
+        "code": "JMD",
+        "unit": "Cent"
+    },
+    {
+        "country": "Japan",
+        "currency": "Japanese yen",
+        "symbol": "¥",
+        "code": "JPY",
+        "unit": "Sen"
+    },
+    {
+        "country": "Jordan",
+        "currency": "Jordanian dinar",
+        "symbol": "JD",
+        "code": "JOD",
+        "unit": "Piastre"
+    },
+    {
+        "country": "Kazakhstan",
+        "currency": "Kazakhstani tenge",
+        "symbol": "₸",
+        "code": "KZT",
+        "unit": "Tiyn"
+    },
+    {
+        "country": "Kenya",
+        "currency": "Kenyan shilling",
+        "symbol": "Sh",
+        "code": "KES",
+        "unit": "Cent"
+    },
+    {
+        "country": "Kiribati",
+        "currency": "Australian dollar",
+        "symbol": "$",
+        "code": "AUD",
+        "unit": "Cent"
+    },
+    {
+        "country": "Korea, North",
+        "currency": "North Korean won",
+        "symbol": "₩",
+        "code": "KPW",
+        "unit": "Chŏn"
+    },
+    {
+        "country": "Korea, South",
+        "currency": "South Korean won",
+        "symbol": "₩",
+        "code": "KRW",
+        "unit": "Jeon"
+    },
+    {
+        "country": "Kosovo",
+        "currency": "Euro",
+        "symbol": "€",
+        "code": "EUR",
+        "unit": "Cent"
+    },
+    {
+        "country": "Kuwait",
+        "currency": "Kuwaiti dinar",
+        "symbol": "K.D.",
+        "code": "KWD",
+        "unit": "Fils"
+    },
+    {
+        "country": "Kyrgyzstan",
+        "currency": "Kyrgyzstani som",
+        "symbol": "Som",
+        "code": "KGS",
+        "unit": "Tyiyn"
+    },
+    {
+        "country": "Laos",
+        "currency": "Lao kip",
+        "symbol": "₭",
+        "code": "LAK",
+        "unit": "Att"
+    },
+    {
+        "country": "Latvia",
+        "currency": "Euro",
+        "symbol": "€",
+        "code": "EUR",
+        "unit": "Cent"
+    },
+    {
+        "country": "Lebanon",
+        "currency": "Lebanese pound",
+        "symbol": "L£",
+        "code": "LBP",
+        "unit": "Piastre"
+    },
+    {
+        "country": "Lesotho",
+        "currency": "Lesotho loti",
+        "symbol": "L",
+        "code": "LSL",
+        "unit": "Sente"
+    },
+    {
+        "country": "Liberia",
+        "currency": "Liberian dollar",
+        "symbol": "$",
+        "code": "LRD",
+        "unit": "Cent"
+    },
+    {
+        "country": "Libya",
+        "currency": "Libyan dinar",
+        "symbol": "LD",
+        "code": "LYD",
+        "unit": "Dirham"
+    },
+    {
+        "country": "Liechtenstein",
+        "currency": "Swiss franc",
+        "symbol": "Fr",
+        "code": "CHF",
+        "unit": "Rappen"
+    },
+    {
+        "country": "Lithuania",
+        "currency": "Euro",
+        "symbol": "€",
+        "code": "EUR",
+        "unit": "Cent"
+    },
+    {
+        "country": "Luxembourg",
+        "currency": "Euro",
+        "symbol": "€",
+        "code": "EUR",
+        "unit": "Cent"
+    },
+    {
+        "country": "Madagascar",
+        "currency": "Malagasy ariary",
+        "symbol": "Ar",
+        "code": "MGA",
+        "unit": "Iraimbilanja"
+    },
+    {
+        "country": "Malawi",
+        "currency": "Malawian kwacha",
+        "symbol": "MK",
+        "code": "MWK",
+        "unit": "Tambala"
+    },
+    {
+        "country": "Malaysia",
+        "currency": "Malaysian ringgit",
+        "symbol": "RM",
+        "code": "MYR",
+        "unit": "Sen"
+    },
+    {
+        "country": "Maldives",
+        "currency": "Maldivian rufiyaa",
+        "symbol": "Rf",
+        "code": "MVR",
+        "unit": "Laari"
+    },
+    {
+        "country": "Mali",
+        "currency": "West African CFA franc",
+        "symbol": "Fr",
+        "code": "XOF",
+        "unit": "Centime"
+    },
+    {
+        "country": "Malta",
+        "currency": "Euro",
+        "symbol": "€",
+        "code": "EUR",
+        "unit": "Cent"
+    },
+    {
+        "country": "Marshall Islands",
+        "currency": "United States dollar",
+        "symbol": "$",
+        "code": "USD",
+        "unit": "Cent"
+    },
+    {
+        "country": "Mauritania",
+        "currency": "Mauritanian ouguiya",
+        "symbol": "UM",
+        "code": "MRU",
+        "unit": "Khoums"
+    },
+    {
+        "country": "Mauritius",
+        "currency": "Mauritian rupee",
+        "symbol": "₨",
+        "code": "MUR",
+        "unit": "Cent"
+    },
+    {
+        "country": "Mexico",
+        "currency": "Mexican peso",
+        "symbol": "$",
+        "code": "MXN",
+        "unit": "Centavo"
+    },
+    {
+        "country": "Micronesia",
+        "currency": "United States dollar",
+        "symbol": "$",
+        "code": "USD",
+        "unit": "Cent"
+    },
+    {
+        "country": "Moldova",
+        "currency": "Moldovan leu",
+        "symbol": "L",
+        "code": "MDL",
+        "unit": "Ban"
+    },
+    {
+        "country": "Monaco",
+        "currency": "Euro",
+        "symbol": "€",
+        "code": "EUR",
+        "unit": "Cent"
+    },
+    {
+        "country": "Mongolia",
+        "currency": "Mongolian tögrög",
+        "symbol": "₮",
+        "code": "MNT",
+        "unit": "Möngö"
+    },
+    {
+        "country": "Montenegro",
+        "currency": "Euro",
+        "symbol": "€",
+        "code": "EUR",
+        "unit": "Cent"
+    },
+    {
+        "country": "Morocco",
+        "currency": "Moroccan dirham",
+        "symbol": "DH",
+        "code": "MAD",
+        "unit": "Centime"
+    },
+    {
+        "country": "Mozambique",
+        "currency": "Mozambican metical",
+        "symbol": "MTn",
+        "code": "MZN",
+        "unit": "Centavo"
+    },
+    {
+        "country": "Myanmar (Burma)",
+        "currency": "Burmese kyat",
+        "symbol": "K",
+        "code": "MMK",
+        "unit": "Pyas"
+    },
+    {
+        "country": "Namibia",
+        "currency": "Namibian dollar",
+        "symbol": "$",
+        "code": "NAD",
+        "unit": "Cent"
+    },
+    {
+        "country": "Nauru",
+        "currency": "Australian dollar",
+        "symbol": "$",
+        "code": "AUD",
+        "unit": "Cent"
+    },
+    {
+        "country": "Nepal",
+        "currency": "Nepalese rupee",
+        "symbol": "रू",
+        "code": "NPR",
+        "unit": "Paisa"
+    },
+    {
+        "country": "Netherlands",
+        "currency": "Euro",
+        "symbol": "€",
+        "code": "EUR",
+        "unit": "Cent"
+    },
+    {
+        "country": "New Zealand",
+        "currency": "New Zealand dollar",
+        "symbol": "$",
+        "code": "NZD",
+        "unit": "Cent"
+    },
+    {
+        "country": "Nicaragua",
+        "currency": "Nicaraguan córdoba",
+        "symbol": "C$",
+        "code": "NIO",
+        "unit": "Centavo"
+    },
+    {
+        "country": "Niger",
+        "currency": "West African CFA franc",
+        "symbol": "Fr",
+        "code": "XOF",
+        "unit": "Centime"
+    },
+    {
+        "country": "Nigeria",
+        "currency": "Nigerian naira",
+        "symbol": "₦",
+        "code": "NGN",
+        "unit": "Kobo"
+    },
+    {
+        "country": "Niue",
+        "currency": "New Zealand dollar",
+        "symbol": "$",
+        "code": "NZD",
+        "unit": "Cent"
+    },
+    {
+        "country": "Norway",
+        "currency": "Norwegian krone",
+        "symbol": "kr",
+        "code": "NOK",
+        "unit": "Øre"
+    },
+    {
+        "country": "Oman",
+        "currency": "Omani rial",
+        "symbol": "ر.ع.",
+        "code": "OMR",
+        "unit": "Baisa"
+    },
+    {
+        "country": "Pakistan",
+        "currency": "Pakistani rupee",
+        "symbol": "Rs",
+        "code": "PKR",
+        "unit": "Paisa"
+    },
+    {
+        "country": "Palau",
+        "currency": "United States dollar",
+        "symbol": "$",
+        "code": "USD",
+        "unit": "Cent"
+    },
+    {
+        "country": "Palestine",
+        "currency": "Israeli new shekel",
+        "symbol": "₪",
+        "code": "ILS",
+        "unit": "Agora"
+    },
+    {
+        "country": "Panama",
+        "currency": "Panamanian balboa",
+        "symbol": "B/.",
+        "code": "PAB",
+        "unit": "Centésimo"
+    },
+    {
+        "country": "Papua New Guinea",
+        "currency": "Papua New Guinean kina",
+        "symbol": "K",
+        "code": "PGK",
+        "unit": "Toea"
+    },
+    {
+        "country": "Paraguay",
+        "currency": "Paraguayan guaraní",
+        "symbol": "₲",
+        "code": "PYG",
+        "unit": "Céntimo"
+    },
+    {
+        "country": "Peru",
+        "currency": "Peruvian sol",
+        "symbol": "S/.",
+        "code": "PEN",
+        "unit": "Céntimo"
+    },
+    {
+        "country": "Philippines",
+        "currency": "Philippine peso",
+        "symbol": "₱",
+        "code": "PHP",
+        "unit": "Centavo"
+    },
+    {
+        "country": "Poland",
+        "currency": "Polish złoty",
+        "symbol": "zł",
+        "code": "PLN",
+        "unit": "Grosz"
+    },
+    {
+        "country": "Portugal",
+        "currency": "Euro",
+        "symbol": "€",
+        "code": "EUR",
+        "unit": "Cent"
+    },
+    {
+        "country": "Qatar",
+        "currency": "Qatari riyal",
+        "symbol": "ر.ق.",
+        "code": "QAR",
+        "unit": "Dirham"
+    },
+    {
+        "country": "Romania",
+        "currency": "Romanian leu",
+        "symbol": "L",
+        "code": "RON",
+        "unit": "Ban"
+    },
+    {
+        "country": "Russia",
+        "currency": "Russian ruble",
+        "symbol": "₽",
+        "code": "RUB",
+        "unit": "Kopek"
+    },
+    {
+        "country": "Rwanda",
+        "currency": "Rwandan franc",
+        "symbol": "RF",
+        "code": "RWF",
+        "unit": "Centime"
+    },
+    {
+        "country": "Saint Kitts and Nevis",
+        "currency": "East Caribbean dollar",
+        "symbol": "$",
+        "code": "XCD",
+        "unit": "Cent"
+    },
+    {
+        "country": "Saint Lucia",
+        "currency": "East Caribbean dollar",
+        "symbol": "$",
+        "code": "XCD",
+        "unit": "Cent"
+    },
+    {
+        "country": "Saint Vincent and the Grenadines",
+        "currency": "East Caribbean dollar",
+        "symbol": "$",
+        "code": "XCD",
+        "unit": "Cent"
+    },
+    {
+        "country": "Samoa",
+        "currency": "Samoan tālā",
+        "symbol": "T",
+        "code": "WST",
+        "unit": "Sene"
+    },
+    {
+        "country": "San Marino",
+        "currency": "Euro",
+        "symbol": "€",
+        "code": "EUR",
+        "unit": "Cent"
+    },
+    {
+        "country": "São Tomé and Príncipe",
+        "currency": "São Tomé and Príncipe dobra",
+        "symbol": "Db",
+        "code": "STN",
+        "unit": "Cêntimo"
+    },
+    {
+        "country": "Saudi Arabia",
+        "currency": "Saudi riyal",
+        "symbol": "ر.س",
+        "code": "SAR",
+        "unit": "Hallalah"
+    },
+    {
+        "country": "Senegal",
+        "currency": "West African CFA franc",
+        "symbol": "Fr",
+        "code": "XOF",
+        "unit": "Centime"
+    },
+    {
+        "country": "Serbia",
+        "currency": "Serbian dinar",
+        "symbol": "дин.",
+        "code": "RSD",
+        "unit": "Para"
+    },
+    {
+        "country": "Seychelles",
+        "currency": "Seychellois rupee",
+        "symbol": "₨",
+        "code": "SCR",
+        "unit": "Cent"
+    },
+    {
+        "country": "Sierra Leone",
+        "currency": "Sierra Leonean leone",
+        "symbol": "Le",
+        "code": "SLL",
+        "unit": "Cent"
+    },
+    {
+        "country": "Singapore",
+        "currency": "Singapore dollar",
+        "symbol": "$",
+        "code": "SGD",
+        "unit": "Cent"
+    },
+    {
+        "country": "Sint Maarten",
+        "currency": "Netherlands Antillean guilder",
+        "symbol": "ƒ",
+        "code": "ANG",
+        "unit": "Cent"
+    },
+    {
+        "country": "Slovakia",
+        "currency": "Euro",
+        "symbol": "€",
+        "code": "EUR",
+        "unit": "Cent"
+    },
+    {
+        "country": "Slovenia",
+        "currency": "Euro",
+        "symbol": "€",
+        "code": "EUR",
+        "unit": "Cent"
+    },
+    {
+        "country": "Solomon Islands",
+        "currency": "Solomon Islands dollar",
+        "symbol": "$",
+        "code": "SBD",
+        "unit": "Cent"
+    },
+    {
+        "country": "Somalia",
+        "currency": "Somali shilling",
+        "symbol": "Sh",
+        "code": "SOS",
+        "unit": "Cent"
+    },
+    {
+        "country": "South Africa",
+        "currency": "South African rand",
+        "symbol": "R",
+        "code": "ZAR",
+        "unit": "Cent"
+    },
+    {
+        "country": "South Sudan",
+        "currency": "South Sudanese pound",
+        "symbol": "£",
+        "code": "SSP",
+        "unit": "Piaster"
+    },
+    {
+        "country": "Spain",
+        "currency": "Euro",
+        "symbol": "€",
+        "code": "EUR",
+        "unit": "Cent"
+    },
+    {
+        "country": "Sri Lanka",
+        "currency": "Sri Lankan rupee",
+        "symbol": "Rs",
+        "code": "LKR",
+        "unit": "Cent"
+    },
+    {
+        "country": "Sudan",
+        "currency": "Sudanese pound",
+        "symbol": "ج.س.",
+        "code": "SDG",
+        "unit": "Piastre"
+    },
+    {
+        "country": "Suriname",
+        "currency": "Surinamese dollar",
+        "symbol": "$",
+        "code": "SRD",
+        "unit": "Cent"
+    },
+    {
+        "country": "Sweden",
+        "currency": "Swedish krona",
+        "symbol": "kr",
+        "code": "SEK",
+        "unit": "Öre"
+    },
+    {
+        "country": "Switzerland",
+        "currency": "Swiss franc",
+        "symbol": "Fr",
+        "code": "CHF",
+        "unit": "Rappen"
+    },
+    {
+        "country": "Syria",
+        "currency": "Syrian pound",
+        "symbol": "£S",
+        "code": "SYP",
+        "unit": "Piastre"
+    },
+    {
+        "country": "Taiwan",
+        "currency": "New Taiwan dollar",
+        "symbol": "NT$",
+        "code": "TWD",
+        "unit": "Cent"
+    },
+    {
+        "country": "Tajikistan",
+        "currency": "Tajikistani somoni",
+        "symbol": "ЅМ",
+        "code": "TJS",
+        "unit": "Diram"
+    },
+    {
+        "country": "Tanzania",
+        "currency": "Tanzanian shilling",
+        "symbol": "Sh",
+        "code": "TZS",
+        "unit": "Cent"
+    },
+    {
+        "country": "Thailand",
+        "currency": "Thai baht",
+        "symbol": "฿",
+        "code": "THB",
+        "unit": "Satang"
+    },
+    {
+        "country": "Timor-Leste",
+        "currency": "United States dollar",
+        "symbol": "$",
+        "code": "USD",
+        "unit": "Cent"
+    },
+    {
+        "country": "Togo",
+        "currency": "West African CFA franc",
+        "symbol": "Fr",
+        "code": "XOF",
+        "unit": "Centime"
+    },
+    {
+        "country": "Tonga",
+        "currency": "Tongan paʻanga",
+        "symbol": "T$",
+        "code": "TOP",
+        "unit": "Seniti"
+    },
+    {
+        "country": "Trinidad and Tobago",
+        "currency": "Trinidad and Tobago dollar",
+        "symbol": "TT$",
+        "code": "TTD",
+        "unit": "Cent"
+    },
+    {
+        "country": "Tunisia",
+        "currency": "Tunisian dinar",
+        "symbol": "DT",
+        "code": "TND",
+        "unit": "Millime"
+    },
+    {
+        "country": "Turkey",
+        "currency": "Turkish lira",
+        "symbol": "₺",
+        "code": "TRY",
+        "unit": "Kuruş"
+    },
+    {
+        "country": "Turkmenistan",
+        "currency": "Turkmenistan manat",
+        "symbol": "m",
+        "code": "TMT",
+        "unit": "Tennesi"
+    },
+    {
+        "country": "Tuvalu",
+        "currency": "Australian dollar",
+        "symbol": "$",
+        "code": "AUD",
+        "unit": "Cent"
+    },
+    {
+        "country": "Uganda",
+        "currency": "Ugandan shilling",
+        "symbol": "Sh",
+        "code": "UGX",
+        "unit": "Cent"
+    },
+    {
+        "country": "Ukraine",
+        "currency": "Ukrainian hryvnia",
+        "symbol": "₴",
+        "code": "UAH",
+        "unit": "Kopiyka"
+    },
+    {
+        "country": "United Arab Emirates",
+        "currency": "United Arab Emirates dirham",
+        "symbol": "د.إ",
+        "code": "AED",
+        "unit": "Fils"
+    },
+    {
+        "country": "United Kingdom",
+        "currency": "Pound sterling",
+        "symbol": "£",
+        "code": "GBP",
+        "unit": "Penny"
+    },
+    {
+        "country": "United States",
+        "currency": "United States dollar",
+        "symbol": "$",
+        "code": "USD",
+        "unit": "Cent"
+    },
+    {
+        "country": "Uruguay",
+        "currency": "Uruguayan peso",
+        "symbol": "$",
+        "code": "UYU",
+        "unit": "Centésimo"
+    },
+    {
+        "country": "Uzbekistan",
+        "currency": "Uzbekistan som",
+        "symbol": "so'm",
+        "code": "UZS",
+        "unit": "Tiyin"
+    },
+    {
+        "country": "Vanuatu",
+        "currency": "Vanuatu vatu",
+        "symbol": "VT",
+        "code": "VUV",
+        "unit": "Centime"
+    },
+    {
+        "country": "Vatican City",
+        "currency": "Euro",
+        "symbol": "€",
+        "code": "EUR",
+        "unit": "Cent"
+    },
+    {
+        "country": "Venezuela",
+        "currency": "Venezuelan bolívar",
+        "symbol": "Bs.S.",
+        "code": "VES",
+        "unit": "Céntimo"
+    },
+    {
+        "country": "Vietnam",
+        "currency": "Vietnamese đồng",
+        "symbol": "₫",
+        "code": "VND",
+        "unit": "Hào"
+    },
+    {
+        "country": "Yemen",
+        "currency": "Yemeni rial",
+        "symbol": "﷼",
+        "code": "YER",
+        "unit": "Fils"
+    },
+    {
+        "country": "Zambia",
+        "currency": "Zambian kwacha",
+        "symbol": "ZK",
+        "code": "ZMW",
+        "unit": "Ngwee"
+    },
+    {
+        "country": "Zimbabwe",
+        "currency": "Zimbabwean dollar",
+        "symbol": "$",
+        "code": "ZWL",
+        "unit": "Cent"
+    }
+]

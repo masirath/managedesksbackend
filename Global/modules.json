@@ -1,0 +1,12 @@
+[
+{"name":"Items"},
+{"name":"Sales"},
+{"name":"Invoices"},
+{"name":"Quotations"},
+{"name":"Purchase"},
+{"name":"Purchase Order"},
+{"name":"Expence"},
+{"name":"Customer"},
+{"name":"Supplier"},
+{"name":"Users"}
+]

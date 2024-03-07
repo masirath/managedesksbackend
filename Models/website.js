@@ -17,6 +17,10 @@ const website_schema = new mongoose.Schema({
     required: true,
     type: String,
   },
+  requirement: {
+    required: true,
+    type: String,
+  },
   date: {
     required: true,
     type: Date,
