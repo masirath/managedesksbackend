@@ -1,13 +1,13 @@
 const mongoose = require("mongoose");
 
-const roles_details_schema = new mongoose.Schema({
+const role_details_schema = new mongoose.Schema({
   role_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "roles",
   },
   module_id: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "modules",
+    ref: "module_details",
   },
   access: {
     type: Number,
@@ -32,7 +32,7 @@ const roles_details_schema = new mongoose.Schema({
 });
 
 module.exports = mongoose.model(
-  "roles_details",
-  roles_details_schema,
-  "roles_details"
+  "role_details",
+  role_details_schema,
+  "role_details"
 );

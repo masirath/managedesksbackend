@@ -1,26 +1,20 @@
 [
     {
+      "name":"items"
+    },
+    {
       "name":"sales"
     },
     {
-      "name":"invoice"
+      "name":"purchases"
     },
     {
-      "name":"Quote"
+     "name":"finance"
     },
     {
-     "name":"Delivery order"
+      "name":"peoples"
     },
     {
-      "name":"Purchase"
-    },
-    {
-      "name":"Purchase Order"
-    },
-    {
-      "name":"Purchase Inward"
-    },
-    {
-      "name":"Purchase Returns"
+      "name":"settings"
     }
 ]

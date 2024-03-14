@@ -6,21 +6,38 @@ const {
   success_200,
   catch_400,
 } = require("../Global/errors");
+const module_details = require("../Models/module_details");
 const modules = require("../Models/modules");
 const roles = require("../Models/roles");
-const roles_details = require("../Models/roles_details");
+const role_details = require("../Models/role_details");
 
 const get_create_role = async (req, res) => {
   try {
     const authorize = authorization(req);
     if (authorize) {
-      const allModules = await modules?.find();
-      success_200(res, "", allModules);
+      const all_modules = await modules.find();
+
+      let modules_data = [];
+      for (const value of all_modules) {
+        const module_detail = await module_details.find({
+          module_id: value?._id,
+        });
+
+        let details = {
+          _id: value?._id,
+          name: value?.name,
+          details: [...module_detail],
+        };
+
+        modules_data?.push(details);
+      }
+
+      success_200(res, "", modules_data);
     } else {
       unauthorized(res);
     }
   } catch (errors) {
-    catch_400(res);
+    catch_400(res, errors?.message);
   }
 };
 
@@ -39,7 +56,7 @@ const create_role = async (req, res) => {
         ) {
           failed_400(res, "Reserved role name");
         } else {
-          const existing_name = await roles.find({
+          const existing_name = await roles.findOne({
             name: name,
             branch: authorize?.branch,
           });
@@ -47,32 +64,38 @@ const create_role = async (req, res) => {
           if (existing_name) {
             failed_400(res, "Role name exists");
           } else {
-            const createRole = new roles({
-              name: name,
-              status: status ? status : 0,
-              branch: branch ? branch : authorize?.branch,
-              ref: authorize?.ref,
-              created: new Date(),
-              updated: new Date(),
-              created_by: authorize?._id,
-            });
+            const all_module_details = await module_details?.find();
 
-            const role = await createRole?.save();
-
-            for (const value of details) {
-              const createRoleDetails = new roles_details({
-                role_id: role?._id,
-                module_id: value?.module_id,
-                access: value?.access,
-                create: value?.create,
-                read: value?.read,
-                update: value?.update,
-                delete: value?.delete,
+            if (all_module_details?.length == details?.length) {
+              const createRole = new roles({
+                name: name,
+                status: status ? status : 0,
+                branch: branch ? branch : authorize?.branch,
+                ref: authorize?.ref,
+                created: new Date(),
+                updated: new Date(),
+                created_by: authorize?._id,
               });
 
-              const roleDetail = await createRoleDetails?.save();
+              const role = await createRole?.save();
+
+              for (const value of details) {
+                const createRoleDetails = new role_details({
+                  role_id: role?._id,
+                  module_id: value?.module_id,
+                  access: value?.access ? value?.access : 0,
+                  create: value?.create ? value?.create : 0,
+                  read: value?.read ? value?.read : 0,
+                  update: value?.update ? value?.update : 0,
+                  delete: value?.delete ? value?.delete : 0,
+                });
+
+                const roleDetail = await createRoleDetails?.save();
+              }
+              success_200(res, "Role created");
+            } else {
+              failed_400(res, "Role detail missing");
             }
-            success_200(res, "Role created");
           }
         }
       }
@@ -80,7 +103,7 @@ const create_role = async (req, res) => {
       unauthorized(res);
     }
   } catch (errors) {
-    catch_400(res);
+    catch_400(res, errors?.message);
   }
 };
 
@@ -117,12 +140,12 @@ const update_role = async (req, res) => {
               existing_role.updated = new Date();
 
               const updateRole = await existing_role?.save();
-              const deleteRoleDetails = await roles_details?.deleteMany({
+              const deleteRoleDetails = await role_details?.deleteMany({
                 role_id: existing_role?._id,
               });
 
               for (const value of details) {
-                const createRoleDetails = new roles_details({
+                const createRoleDetails = new role_details({
                   role_id: existing_role?._id,
                   module_id: value?.module_id,
                   access: value?.access,
@@ -162,7 +185,18 @@ const get_role = async (req, res) => {
         const role = await roles.findById(id);
 
         if (role) {
-          success_200(res, "", role);
+          const roleDetails = await role_details
+            .find({
+              role_id: role?._id,
+            })
+            .populate("module_id");
+
+          const roleData = {
+            role: role,
+            role_details: roleDetails,
+          };
+
+          success_200(res, "", { role, roleDetails });
         } else {
           failed_400(res, "Role not found");
         }
