@@ -19,9 +19,11 @@ const get_create_role = async (req, res) => {
 
       let modules_data = [];
       for (const value of all_modules) {
-        const module_detail = await module_details.find({
-          module_id: value?._id,
-        });
+        const module_detail = await module_details
+          ?.find({
+            module_id: value?._id,
+          })
+          ?.select(["name"]);
 
         let details = {
           _id: value?._id,
@@ -78,21 +80,35 @@ const create_role = async (req, res) => {
               });
 
               const role = await createRole?.save();
+              let allModulesFound = true;
 
               for (const value of details) {
-                const createRoleDetails = new role_details({
-                  role_id: role?._id,
-                  module_id: value?.module_id,
-                  access: value?.access ? value?.access : 0,
-                  create: value?.create ? value?.create : 0,
-                  read: value?.read ? value?.read : 0,
-                  update: value?.update ? value?.update : 0,
-                  delete: value?.delete ? value?.delete : 0,
-                });
+                const module = await module_details?.findById(value.module_id);
 
-                const roleDetail = await createRoleDetails?.save();
+                if (module) {
+                  const createRoleDetails = new role_details({
+                    role_id: role?._id,
+                    module_id: value?.module_id,
+                    access: value?.access ? value?.access : 0,
+                    create: value?.create ? value?.create : 0,
+                    read: value?.read ? value?.read : 0,
+                    update: value?.update ? value?.update : 0,
+                    delete: value?.delete ? value?.delete : 0,
+                  });
+                  const roleDetail = await createRoleDetails?.save();
+                } else {
+                  allModulesFound = false;
+                  break;
+                }
               }
-              success_200(res, "Role created");
+
+              if (allModulesFound) {
+                success_200(res, "Role created");
+              } else {
+                await roles?.deleteOne({ _id: role?._id });
+                await role_details?.deleteMany({ role_id: role?._id });
+                failed_400(res, "Module not found");
+              }
             } else {
               failed_400(res, "Role detail missing");
             }
@@ -122,7 +138,7 @@ const update_role = async (req, res) => {
         ) {
           failed_400(res, "Reserved role name");
         } else {
-          const existing_name = await roles.find({
+          const existing_name = await roles.findOne({
             _id: { $ne: id },
             name: name,
             branch: authorize?.branch,
@@ -143,22 +159,36 @@ const update_role = async (req, res) => {
               const deleteRoleDetails = await role_details?.deleteMany({
                 role_id: existing_role?._id,
               });
+              let allModulesFound = true;
 
               for (const value of details) {
-                const createRoleDetails = new role_details({
-                  role_id: existing_role?._id,
-                  module_id: value?.module_id,
-                  access: value?.access,
-                  create: value?.create,
-                  read: value?.read,
-                  update: value?.update,
-                  delete: value?.delete,
-                });
+                const module = await module_details?.findById(value.module_id);
 
-                const roleDetail = await createRoleDetails?.save();
+                if (module) {
+                  const createRoleDetails = new role_details({
+                    role_id: existing_role?._id,
+                    module_id: value?.module_id,
+                    access: value?.access,
+                    create: value?.create,
+                    read: value?.read,
+                    update: value?.update,
+                    delete: value?.delete,
+                  });
+
+                  const roleDetail = await createRoleDetails?.save();
+                } else {
+                  allModulesFound = false;
+                  break;
+                }
               }
 
-              success_200(res, "Role Updated");
+              if (allModulesFound) {
+                success_200(res, "Role updated");
+              } else {
+                await roles?.deleteOne({ _id: existing_role?._id });
+                await role_details?.deleteMany({ role_id: existing_role?._id });
+                failed_400(res, "Module not found");
+              }
             } else {
               failed_400(res, "Role not found");
             }
@@ -185,11 +215,9 @@ const get_role = async (req, res) => {
         const role = await roles.findById(id);
 
         if (role) {
-          const roleDetails = await role_details
-            .find({
-              role_id: role?._id,
-            })
-            .populate("module_id");
+          const roleDetails = await role_details.find({
+            role_id: role?._id,
+          });
 
           const roleData = {
             role: role,
