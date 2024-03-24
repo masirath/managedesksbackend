@@ -280,34 +280,34 @@ const verify_user = async (req, res) => {
 
     if (!user) {
       error_400(res, 401, "Invalid username or password");
-    }
-
-    if (!user.status) {
-      error_400(res, 402, "Invalid account");
-    }
-
-    const verify_password = await bcrypt.compare(password, user.password);
-
-    if (verify_password) {
-      const user_branch = await branch.findById(user.branch);
-
-      const token = jwt.sign(
-        {
-          id: user._id,
-          username: user.username,
-          role: user.role,
-          branch: user_branch,
-          ref: user.ref,
-        },
-        secret_key
-      );
-
-      const data = {
-        token: token,
-      };
-      success_200(res, "Login successfully", data);
     } else {
-      failed_400(res, "Invalid username or password");
+      if (!user.status) {
+        error_400(res, 402, "Invalid account");
+      } else {
+        const verify_password = await bcrypt.compare(password, user.password);
+
+        if (verify_password) {
+          const user_branch = await branch.findById(user.branch);
+
+          const token = jwt.sign(
+            {
+              id: user._id,
+              username: user.username,
+              role: user.role,
+              branch: user_branch,
+              ref: user.ref,
+            },
+            secret_key
+          );
+
+          const data = {
+            token: token,
+          };
+          success_200(res, "Login successfully", data);
+        } else {
+          failed_400(res, "Invalid username or password");
+        }
+      }
     }
   } catch (errors) {
     catch_400(res, errors?.message);
