@@ -219,12 +219,32 @@ const get_role = async (req, res) => {
             role_id: role?._id,
           });
 
+          const all_modules = await modules.find();
+
+          let modules_data = [];
+          for (const value of all_modules) {
+            const module_detail = await module_details
+              ?.find({
+                module_id: value?._id,
+              })
+              ?.select(["name"]);
+
+            let details = {
+              _id: value?._id,
+              name: value?.name,
+              details: [...module_detail],
+            };
+
+            modules_data?.push(details);
+          }
+
           const roleData = {
             role: role,
             role_details: roleDetails,
+            modules_data: modules_data,
           };
 
-          success_200(res, "", { role, roleDetails });
+          success_200(res, "", roleData);
         } else {
           failed_400(res, "Role not found");
         }
