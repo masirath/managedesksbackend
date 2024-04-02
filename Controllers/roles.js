@@ -220,7 +220,6 @@ const get_role = async (req, res) => {
           });
 
           const all_modules = await modules.find();
-
           let modules_data = [];
           for (const value of all_modules) {
             const module_detail = await module_details
@@ -238,10 +237,39 @@ const get_role = async (req, res) => {
             modules_data?.push(details);
           }
 
+          let ids = [];
+          for (const value of modules_data) {
+            for (const val of value?.details) {
+              ids?.push(val?._id);
+            }
+          }
+
+          let role_data = [];
+          for (const value of modules_data) {
+            let role = {
+              _id: value?._id,
+              name: value?.name,
+            };
+
+            let role_details_data = [];
+            for (const val of value?.details) {
+              role_details_data?.push({
+                _id: val?._id,
+                name: val?.name,
+                access: Boolean(roleDetails?.[ids?.indexOf(val?._id)]?.access),
+                create: Boolean(roleDetails?.[ids?.indexOf(val?._id)]?.create),
+                read: Boolean(roleDetails?.[ids?.indexOf(val?._id)]?.read),
+                update: Boolean(roleDetails?.[ids?.indexOf(val?._id)]?.update),
+                delete: Boolean(roleDetails?.[ids?.indexOf(val?._id)]?.delete),
+              });
+            }
+
+            role_data?.push({ ...role, details: [...role_details_data] });
+          }
+
           const roleData = {
             role: role,
-            role_details: roleDetails,
-            modules_data: modules_data,
+            modules_data: role_data,
           };
 
           success_200(res, "", roleData);
