@@ -49,6 +49,8 @@ const purchases = require("./Routes/purchase");
 const expenses = require("./Routes/expenses");
 const data = require("./Routes/data");
 const roles = require("./Routes/roles");
+const accrual = require("./Routes/accrual");
+const amortisation = require("./Routes/amortisation");
 
 app.use(website);
 app.use(users);
@@ -63,6 +65,8 @@ app.use(purchases);
 app.use(expenses);
 app.use(data);
 app.use(roles);
+app.use(accrual);
+app.use(amortisation);
 
 app.listen(port, () => {
   console.log(`Server Started at ${port}`);
