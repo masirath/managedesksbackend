@@ -103,7 +103,7 @@ const get_accrual = async (req, res) => {
   }
 };
 
-const get_all_accrual = async (req, res) => {
+const get_all_accruals = async (req, res) => {
   try {
     let authorize = authorization(req);
     if (authorize) {
@@ -121,5 +121,5 @@ module.exports = {
   create_accrual,
   update_accrual,
   get_accrual,
-  get_all_accrual,
+  get_all_accruals,
 };
