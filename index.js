@@ -53,6 +53,7 @@ const accrual = require("./Routes/accrual");
 const amortisation = require("./Routes/amortisation");
 const assets = require("./Routes/assets");
 const bad_debts = require("./Routes/baddebts");
+const cash_basic_accounting = require("./Routes/cash_basic_accounting");
 
 app.use(website);
 app.use(users);
@@ -71,6 +72,7 @@ app.use(accrual);
 app.use(amortisation);
 app.use(assets);
 app.use(bad_debts);
+app.use(cash_basic_accounting);
 
 app.listen(port, () => {
   console.log(`Server Started at ${port}`);
