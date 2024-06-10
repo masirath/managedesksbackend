@@ -55,6 +55,7 @@ const assets = require("./Routes/assets");
 const bad_debts = require("./Routes/baddebts");
 const cash_basic_accounting = require("./Routes/cash_basic_accounting");
 const cash_flow = require("./Routes/cash_flow");
+const closing_balance = require("./Routes/closing_balance");
 
 app.use(website);
 app.use(users);
@@ -75,6 +76,7 @@ app.use(assets);
 app.use(bad_debts);
 app.use(cash_basic_accounting);
 app.use(cash_flow);
+app.use(closing_balance);
 
 app.listen(port, () => {
   console.log(`Server Started at ${port}`);

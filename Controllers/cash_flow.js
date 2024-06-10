@@ -111,6 +111,7 @@ const get_cash_flow = async (req, res) => {
     const authorize = authorization(req);
     if (authorize) {
       const { id } = req?.params;
+
       if (!id) {
         incomplete_400(res);
       } else {
