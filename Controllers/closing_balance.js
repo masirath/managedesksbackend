@@ -116,3 +116,5 @@ module.exports = {
   get_closing_balance,
   get_all_closing_balance,
 };
+
+5, 00, 000;
