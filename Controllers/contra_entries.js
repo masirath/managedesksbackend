@@ -90,8 +90,8 @@ const update_contra_entries = async (req, res) => {
           selected_contra_entry.description = description;
           selected_contra_entry.debit_account = debit_account;
           selected_contra_entry.debit_amount = debit_amount;
-          selected_contra_entry.credit_account = transation_date;
-          selected_contra_entry.credit_amount = transation_date;
+          selected_contra_entry.credit_account = credit_account;
+          selected_contra_entry.credit_amount = credit_amount;
           selected_contra_entry.updated = new Date();
 
           const dataToUpdate = await selected_contra_entry.save();
