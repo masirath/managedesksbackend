@@ -57,6 +57,9 @@ const cash_basic_accounting = require("./Routes/cash_basic_accounting");
 const cash_flow = require("./Routes/cash_flow");
 const closing_balance = require("./Routes/closing_balance");
 const contra_entries = require("./Routes/contra_entries");
+const cost_of_goods = require("./Routes/cost_of_goods");
+const credit = require("./Routes/credit");
+const credit_note = require("./Routes/credit_note");
 
 app.use(website);
 app.use(users);
@@ -79,6 +82,9 @@ app.use(cash_basic_accounting);
 app.use(cash_flow);
 app.use(closing_balance);
 app.use(contra_entries);
+app.use(cost_of_goods);
+app.use(credit);
+app.use(credit_note);
 
 app.listen(port, () => {
   console.log(`Server Started at ${port}`);
