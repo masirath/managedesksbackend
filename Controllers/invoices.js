@@ -606,6 +606,7 @@ const update_invoice = async (req, res) => {
           failed_400(res, "Invoice Order not found");
         } else {
           const selected_invoice_number = await invoices?.findOne({
+            _id: { $ne: id },
             number: assigned_number,
             branch: branch ? branch : authorize?.branch,
           });
@@ -883,8 +884,8 @@ const update_invoice = async (req, res) => {
                             ? status
                             : 0;
 
-                          const invoice_unit_detail_save =
-                            invoice_unit_detail?.save();
+                          const selected_invoices_units_details_save =
+                            selected_invoices_units_details?.save();
                         }
                       }
                     }
@@ -1017,9 +1018,9 @@ const update_invoice = async (req, res) => {
             }
 
             if (count == details?.length) {
-              const selected_invoice = await invoices?.findById(
-                invoice_save?._id
-              );
+              // const selected_invoice = await invoices?.findById(
+              //   invoice_save?._id
+              // );
 
               if (selected_invoice) {
                 //delivery status
@@ -1104,11 +1105,16 @@ const update_invoice = async (req, res) => {
                   }
                 }
 
+                const delete_invoice_payment_details =
+                  await invoices_payments?.deleteMany({
+                    invoice: selected_invoice?._id,
+                  });
+
                 //order payment
                 if (invoice_payment_details?.length > 0) {
                   for (value of invoice_payment_details) {
                     const invoice_payment = await invoices_payments({
-                      invoice: invoice_save?._id,
+                      invoice: selected_invoice?._id,
                       name: value?.name,
                       amount: value?.amount,
                       status: status ? status : 0,
