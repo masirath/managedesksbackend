@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const expense_categories_schema = new mongoose.Schema({
+const expense_categories_schema = mongoose.Schema({
   name: {
     required: true,
     type: String,
@@ -12,25 +12,19 @@ const expense_categories_schema = new mongoose.Schema({
   },
   ref: {
     required: true,
-    type: String,
+    type: Number,
   },
   branch: {
+    required: true,
     type: mongoose.Schema.Types.ObjectId,
-    ref: "branch",
+    ref: "branches",
   },
   created: {
     required: true,
     type: Date,
   },
-  updated: {
-    required: true,
-    type: Date,
-  },
   created_by: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "users",
-  },
-  updated_by: {
+    required: true,
     type: mongoose.Schema.Types.ObjectId,
     ref: "users",
   },

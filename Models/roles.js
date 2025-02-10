@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const roles_schema = new mongoose.Schema({
+const roles_schema = mongoose.Schema({
   name: {
     required: true,
     type: String,
@@ -16,13 +16,9 @@ const roles_schema = new mongoose.Schema({
   },
   branch: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "branch",
+    ref: "branches",
   },
   created: {
-    required: true,
-    type: Date,
-  },
-  updated: {
     required: true,
     type: Date,
   },

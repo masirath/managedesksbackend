@@ -1,57 +1,58 @@
 const mongoose = require("mongoose");
 
-const users_schema = new mongoose.Schema({
-  first_name: {
+const users_schema = mongoose.Schema({
+  image: {
+    required: false,
+    type: String,
+  },
+  name: {
     required: true,
-    type: String,
-  },
-  last_name: {
-    required: false,
-    type: String,
-  },
-  reference_no: {
-    required: false,
-    type: String,
-  },
-  email: {
-    required: false,
     type: String,
   },
   phone: {
-    required: false,
-    type: String,
-  },
-  role: {
     required: true,
     type: String,
   },
-  username: {
+  email: {
     required: true,
+    type: String,
     unique: true,
-    type: String,
   },
   password: {
     required: true,
     type: String,
   },
+  branches: {
+    required: false,
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "branches",
+  },
+  role: {
+    required: false,
+    type: String,
+  },
   status: {
     required: true,
     type: Number,
-    default: 1,
   },
   ref: {
     required: true,
-    type: String,
+    type: Number,
   },
   branch: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "branch",
-  },
-  created: {
     required: true,
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "branches",
+  },
+  login: {
+    required: false,
     type: Date,
   },
-  updated: {
+  logout: {
+    required: false,
+    type: Date,
+  },
+  created: {
     required: true,
     type: Date,
   },

@@ -1,16 +1,17 @@
 const mongoose = require("mongoose");
 
-const customers_schema = new mongoose.Schema({
+const customers_schema = mongoose.Schema({
   name: {
-    required: true,
+    required: false,
     type: String,
   },
   email: {
     required: false,
     type: String,
+    trim: true,
   },
   phone: {
-    required: false,
+    required: true,
     type: String,
   },
   area: {
@@ -25,10 +26,6 @@ const customers_schema = new mongoose.Schema({
     required: false,
     type: String,
   },
-  tax_number: {
-    required: false,
-    type: String,
-  },
   country: {
     required: false,
     type: String,
@@ -40,21 +37,19 @@ const customers_schema = new mongoose.Schema({
   },
   ref: {
     required: true,
-    type: String,
+    type: Number,
   },
   branch: {
+    required: true,
     type: mongoose.Schema.Types.ObjectId,
-    ref: "branch",
+    ref: "branches",
   },
   created: {
     required: true,
     type: Date,
   },
-  updated: {
-    required: true,
-    type: Date,
-  },
   created_by: {
+    required: true,
     type: mongoose.Schema.Types.ObjectId,
     ref: "users",
   },

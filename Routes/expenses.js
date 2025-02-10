@@ -1,26 +1,21 @@
 const express = require("express");
-const expenses = express.Router();
-
 const {
-  create_expense_category,
-  update_expense_category,
-  get_expense_category,
-  get_all_expense_categories,
   create_expense,
-  update_expense,
   get_expense,
   get_all_expenses,
-  get_create_expense,
+  update_expense,
+  get_all_expenses_log,
+  get_expense_log,
+  delete_expense,
 } = require("../Controllers/expenses");
+const expenses = express.Router();
 
-expenses.post("/api/create-expense-category", create_expense_category);
-expenses.post("/api/update-expense-category", update_expense_category);
-expenses.get("/api/get-expense-category/:id", get_expense_category);
-expenses.get("/api/get-all-expense-categories", get_all_expense_categories);
-expenses.get("/api/get-create-expenses", get_create_expense);
-expenses.post("/api/create-expense", create_expense);
-expenses.post("/api/update-expense", update_expense);
-expenses.get("/api/get-expense/:id", get_expense);
-expenses.get("/api/get-all-expenses", get_all_expenses);
+expenses?.post("/api/create-expense", create_expense);
+expenses?.post("/api/update-expense", update_expense);
+expenses?.post("/api/delete-expense", delete_expense);
+expenses?.post("/api/get-expense", get_expense);
+expenses?.post("/api/get-all-expenses", get_all_expenses);
+expenses?.post("/api/get-expense-log", get_expense_log);
+expenses?.post("/api/get-all-expenses-log", get_all_expenses_log);
 
 module.exports = expenses;

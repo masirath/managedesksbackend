@@ -1,118 +1,67 @@
+require("dotenv").config();
 const { authorization } = require("../Global/authorization");
 const {
-  unauthorized,
-  incomplete_400,
   failed_400,
-  success_200,
+  unauthorized,
   catch_400,
+  incomplete_400,
+  success_200,
 } = require("../Global/errors");
-const module_details = require("../Models/module_details");
-const modules = require("../Models/modules");
 const roles = require("../Models/roles");
-const role_details = require("../Models/role_details");
-
-const get_create_role = async (req, res) => {
-  try {
-    const authorize = authorization(req);
-    if (authorize) {
-      const all_modules = await modules.find();
-
-      let modules_data = [];
-      for (const value of all_modules) {
-        const module_detail = await module_details
-          ?.find({
-            module_id: value?._id,
-          })
-          ?.select(["name"]);
-
-        let details = {
-          _id: value?._id,
-          name: value?.name,
-          details: [...module_detail],
-        };
-
-        modules_data?.push(details);
-      }
-
-      success_200(res, "", modules_data);
-    } else {
-      unauthorized(res);
-    }
-  } catch (errors) {
-    catch_400(res, errors?.message);
-  }
-};
+const roles_details = require("../Models/roles_details");
 
 const create_role = async (req, res) => {
   try {
     const authorize = authorization(req);
-    if (authorize) {
-      const { name, status, branch, details } = req?.body;
 
-      if (!name || !details) {
+    if (authorize) {
+      const { name, status, details, branch } = req?.body;
+
+      if (!name) {
         incomplete_400(res);
       } else {
-        if (
-          name?.toLowerCase() == "superadmin" ||
-          name?.toLowerCase() == "admin"
-        ) {
-          failed_400(res, "Reserved role name");
+        const selected_role_name = await roles?.findOne({
+          name: name,
+          branch: authorize?.branch,
+        });
+
+        if (selected_role_name) {
+          failed_400(res, "Role name exists");
         } else {
-          const existing_name = await roles.findOne({
+          const role = new roles({
             name: name,
-            branch: authorize?.branch,
+            status: status ? status : 0,
+            ref: authorize?.ref,
+            branch: branch ? branch : authorize?.branch,
+            created: new Date(),
+            created_by: authorize?.id,
           });
 
-          if (existing_name) {
-            failed_400(res, "Role name exists");
-          } else {
-            const all_module_details = await module_details?.find();
+          const role_save = await role?.save();
 
-            if (all_module_details?.length == details?.length) {
-              const createRole = new roles({
-                name: name,
+          if (details?.length > 0) {
+            for (value of details) {
+              const role_details = new roles_details({
+                role: role_save?._id,
+                name: value?.name,
+                full_access: value?.full_access,
+                view: value?.view,
+                create: value?.create,
+                update: value?.update,
+                delete: value?.delete,
+                approve: value?.approve,
                 status: status ? status : 0,
-                branch: branch ? branch : authorize?.branch,
                 ref: authorize?.ref,
+                branch: branch ? branch : authorize?.branch,
                 created: new Date(),
-                updated: new Date(),
-                created_by: authorize?._id,
+                created_by: authorize?.id,
               });
 
-              const role = await createRole?.save();
-              let allModulesFound = true;
-
-              for (const value of details) {
-                const module = await module_details?.findById(value.module_id);
-
-                if (module) {
-                  const createRoleDetails = new role_details({
-                    role_id: role?._id,
-                    module_id: value?.module_id,
-                    access: value?.access ? value?.access : 0,
-                    create: value?.create ? value?.create : 0,
-                    read: value?.read ? value?.read : 0,
-                    update: value?.update ? value?.update : 0,
-                    delete: value?.delete ? value?.delete : 0,
-                  });
-                  const roleDetail = await createRoleDetails?.save();
-                } else {
-                  allModulesFound = false;
-                  break;
-                }
-              }
-
-              if (allModulesFound) {
-                success_200(res, "Role created");
-              } else {
-                await roles?.deleteOne({ _id: role?._id });
-                await role_details?.deleteMany({ role_id: role?._id });
-                failed_400(res, "Module not found");
-              }
-            } else {
-              failed_400(res, "Role detail missing");
+              const role_details_save = await role_details?.save();
             }
           }
+
+          success_200(res, "Role created");
         }
       }
     } else {
@@ -126,73 +75,90 @@ const create_role = async (req, res) => {
 const update_role = async (req, res) => {
   try {
     const authorize = authorization(req);
-    if (authorize) {
-      const { id, name, status, branch, details } = req?.body;
 
-      if (!id || !name || !details) {
-        incomplete_400(res);
+    const { id, name, status, details, branch } = req?.body;
+
+    if (!id || !name) {
+      incomplete_400(res);
+    } else {
+      const selected_role = await roles?.findById(id);
+
+      if (!selected_role || selected_role.status == 2) {
+        failed_400(res, "Role not found");
       } else {
-        if (
-          name?.toLowerCase() == "superadmin" ||
-          name?.toLowerCase() == "admin"
-        ) {
-          failed_400(res, "Reserved role name");
+        const selected_role_name = await roles?.findOne({
+          _id: { $ne: id },
+          name: name,
+          branch: branch ? branch : authorize?.branch,
+        });
+
+        if (selected_role_name) {
+          failed_400(res, "Role name exists");
         } else {
-          const existing_name = await roles.findOne({
-            _id: { $ne: id },
-            name: name,
-            branch: authorize?.branch,
+          selected_role.name = name;
+          selected_role.status = status ? status : 0;
+          selected_role.branch = branch ? branch : authorize?.branch;
+
+          const role_update = await selected_role?.save();
+
+          const delete_role_details = await roles_details?.deleteMany({
+            role: id,
           });
 
-          if (existing_name) {
-            failed_400(res, "Role name exists");
-          } else {
-            const existing_role = await roles.findById(id);
-
-            if (existing_role) {
-              existing_role.name = name ? name : "";
-              existing_role.status = status ? status : 0;
-              existing_role.branch = branch ? branch : authorize?.branch;
-              existing_role.updated = new Date();
-
-              const updateRole = await existing_role?.save();
-              const deleteRoleDetails = await role_details?.deleteMany({
-                role_id: existing_role?._id,
+          if (details?.length > 0) {
+            for (value of details) {
+              const role_details = new roles_details({
+                role: role_update?._id,
+                name: value?.name,
+                full_access: value?.full_access,
+                view: value?.view,
+                create: value?.create,
+                update: value?.update,
+                delete: value?.delete,
+                approve: value?.approve,
+                status: status ? status : 0,
+                ref: authorize?.ref,
+                branch: branch ? branch : authorize?.branch,
+                created: new Date(),
+                created_by: authorize?.id,
               });
-              let allModulesFound = true;
 
-              for (const value of details) {
-                const module = await module_details?.findById(value.module_id);
-
-                if (module) {
-                  const createRoleDetails = new role_details({
-                    role_id: existing_role?._id,
-                    module_id: value?.module_id,
-                    access: value?.access,
-                    create: value?.create,
-                    read: value?.read,
-                    update: value?.update,
-                    delete: value?.delete,
-                  });
-
-                  const roleDetail = await createRoleDetails?.save();
-                } else {
-                  allModulesFound = false;
-                  break;
-                }
-              }
-
-              if (allModulesFound) {
-                success_200(res, "Role updated");
-              } else {
-                await roles?.deleteOne({ _id: existing_role?._id });
-                await role_details?.deleteMany({ role_id: existing_role?._id });
-                failed_400(res, "Module not found");
-              }
-            } else {
-              failed_400(res, "Role not found");
+              const role_details_save = await role_details?.save();
             }
           }
+
+          success_200(res, "Role updated");
+        }
+      }
+    }
+
+    if (authorize) {
+    } else {
+      unauthorized(res);
+    }
+  } catch (errors) {
+    catch_400(res, errors?.message);
+  }
+};
+
+const delete_role = async (req, res) => {
+  try {
+    const authorize = authorization(req);
+
+    if (authorize) {
+      const { id, status } = req?.body;
+
+      if (!id) {
+        incomplete_400(res);
+      } else {
+        const selected_role = await roles?.findById(id);
+
+        if (!selected_role) {
+          failed_400(res, "Role not found");
+        } else {
+          selected_role.status = 2;
+          const role_delete = selected_role?.save();
+          success_200(res, "Role deleted");
         }
       }
     } else {
@@ -206,75 +172,27 @@ const update_role = async (req, res) => {
 const get_role = async (req, res) => {
   try {
     const authorize = authorization(req);
+
     if (authorize) {
-      const { id } = req?.params;
+      const { id } = req?.body;
 
       if (!id) {
         incomplete_400(res);
       } else {
-        const role = await roles.findById(id);
+        const selected_roles = await roles?.findById(id);
 
-        if (role) {
-          const roleDetails = await role_details.find({
-            role_id: role?._id,
-          });
+        if (!selected_roles) {
+          failed_400(res, "Roles not found");
+        } else {
+          let role = selected_roles?.toObject();
+          const role_details = await roles_details?.find({ role: role?._id });
 
-          const all_modules = await modules.find();
-          let modules_data = [];
-          for (const value of all_modules) {
-            const module_detail = await module_details
-              ?.find({
-                module_id: value?._id,
-              })
-              ?.select(["name"]);
-
-            let details = {
-              _id: value?._id,
-              name: value?.name,
-              details: [...module_detail],
-            };
-
-            modules_data?.push(details);
-          }
-
-          let ids = [];
-          for (const value of modules_data) {
-            for (const val of value?.details) {
-              ids?.push(val?._id);
-            }
-          }
-
-          let role_data = [];
-          for (const value of modules_data) {
-            let role = {
-              _id: value?._id,
-              name: value?.name,
-            };
-
-            let role_details_data = [];
-            for (const val of value?.details) {
-              role_details_data?.push({
-                _id: val?._id,
-                name: val?.name,
-                access: Boolean(roleDetails?.[ids?.indexOf(val?._id)]?.access),
-                create: Boolean(roleDetails?.[ids?.indexOf(val?._id)]?.create),
-                read: Boolean(roleDetails?.[ids?.indexOf(val?._id)]?.read),
-                update: Boolean(roleDetails?.[ids?.indexOf(val?._id)]?.update),
-                delete: Boolean(roleDetails?.[ids?.indexOf(val?._id)]?.delete),
-              });
-            }
-
-            role_data?.push({ ...role, details: [...role_details_data] });
-          }
-
-          const roleData = {
-            role: role,
-            modules_data: role_data,
+          let all_roles_details = {
+            ...role,
+            details: role_details,
           };
 
-          success_200(res, "", roleData);
-        } else {
-          failed_400(res, "Role not found");
+          success_200(res, "", all_roles_details);
         }
       }
     } else {
@@ -288,9 +206,90 @@ const get_role = async (req, res) => {
 const get_all_roles = async (req, res) => {
   try {
     const authorize = authorization(req);
+
+    if (!authorize) {
+      return unauthorized(res);
+    }
+
+    const { search, status, page, limit } = req?.body;
+
+    const page_number = Number(page) || 1;
+    const page_limit = Number(limit) || 10;
+
+    const productRoleList = { branch: authorize?.branch, status: { $ne: 2 } };
+
+    if (search) {
+      productRoleList.name = { $regex: search, $options: "i" };
+    }
+    if (status) {
+      productRoleList.status = status;
+    }
+
+    // Get total count for pagination metadata
+    const totalCount = await roles.countDocuments(productRoleList);
+
+    // Fetch paginated data
+    const paginated_roles = await roles
+      .find(productRoleList)
+      .skip((page_number - 1) * page_limit)
+      .limit(page_limit);
+
+    const totalPages = Math.ceil(totalCount / page_limit);
+
+    success_200(res, "", {
+      currentPage: page_number,
+      totalPages,
+      totalCount,
+      data: paginated_roles,
+    });
+  } catch (errors) {
+    catch_400(res, errors?.message);
+  }
+};
+
+const get_role_log = async (req, res) => {
+  try {
+    const authorize = authorization(req);
+
     if (authorize) {
-      const all_roles = await roles.find({ branch: authorize?.branch });
-      success_200(res, "", all_roles);
+      const { id } = req?.body;
+
+      if (!id) {
+        incomplete_400(res);
+      } else {
+        const selected_role_log = await roles_log?.findById(id);
+
+        if (!selected_role_log) {
+          failed_400(res, "Role log not found");
+        } else {
+          success_200(res, "", selected_role_log);
+        }
+      }
+    } else {
+      unauthorized(res);
+    }
+  } catch (errors) {
+    catch_400(res, errors?.message);
+  }
+};
+
+const get_all_role_logs = async (req, res) => {
+  try {
+    const authorize = authorization(req);
+
+    const { search } = req?.body;
+
+    if (authorize) {
+      const { role } = req?.body;
+
+      if (!role) {
+        incomplete_400(res);
+      } else {
+        const all_role_logs = await roles_log?.find({
+          role: role,
+        });
+        success_200(res, "", all_role_logs);
+      }
     } else {
       unauthorized(res);
     }
@@ -300,9 +299,11 @@ const get_all_roles = async (req, res) => {
 };
 
 module.exports = {
-  get_create_role,
   create_role,
   update_role,
+  delete_role,
   get_role,
   get_all_roles,
+  get_role_log,
+  get_all_role_logs,
 };

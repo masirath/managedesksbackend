@@ -1,160 +1,36 @@
+const { authorization } = require("../Global/authorization");
 const {
+  failed_400,
+  unauthorized,
   catch_400,
   incomplete_400,
-  error_400,
-  unauthorized,
   success_200,
-  failed_400,
 } = require("../Global/errors");
-const { authorization } = require("../Global/authorization");
 const expenses = require("../Models/expenses");
-const expense_categories = require("../Models/expense_categories");
-const users = require("../Models/users");
+const expenses_log = require("../Models/expenses_log");
+const { checknull } = require("../Global/checknull");
 
-const create_expense_category = async (req, res) => {
+const get_next_expense = async (req, res, number) => {
   try {
     const authorize = authorization(req);
+
     if (authorize) {
-      const { name, status, branch } = req?.body;
-
-      if (!name) {
-        incomplete_400(res);
-      } else {
-        const existing_category = await expense_categories.findOne({
-          name: name,
-          branch: authorize?.branch,
-        });
-
-        if (existing_category) {
-          failed_400(res, "Expense category exist");
-        } else {
-          const category = new expense_categories({
-            name: name,
-            status: status ? status : 0,
-            ref: authorize?.ref,
-            branch: branch ? branch : authorize?.branch,
-            created: new Date(),
-            updated: new Date(),
-            created_by: authorize?.id,
-            updated_by: authorize?.id,
-          });
-
-          const categoryToSave = await category?.save();
-          success_200(res, "Expense category created", categoryToSave);
-        }
-      }
-    } else {
-      unauthorized(res);
-    }
-  } catch (errors) {
-    catch_400(res, errors?.message);
-  }
-};
-
-const update_expense_category = async (req, res) => {
-  try {
-    const authorize = authorization(req);
-    if (authorize) {
-      const { id, name, status, branch } = req?.body;
-
-      if (!id || !name) {
-        incomplete_400(res);
-      } else {
-        const category = await expense_categories?.findById(id);
-
-        if (category) {
-          const existing_category = await expense_categories.findOne({
-            _id: { $ne: id },
-            name: name,
-            branch: authorize?.branch,
-          });
-
-          if (existing_category) {
-            failed_400(res, "Expense category exist");
-          } else {
-            category.name = name;
-            category.status = status ? status : 0;
-            category.ref = authorize?.ref;
-            category.branch = branch ? branch : authorize?.branch;
-            category.created = new Date();
-            category.updated = new Date();
-            category.created_by = authorize?.id;
-            category.updated_by = authorize?.id;
-
-            const categoryToUpdate = await category?.save();
-            success_200(res, "Expense category updated", categoryToUpdate);
-          }
-        } else {
-          failed_400(res, "Expense category not found");
-        }
-      }
-    } else {
-      unauthorized(res);
-    }
-  } catch (errors) {
-    catch_400(res, errors?.message);
-  }
-};
-
-const get_expense_category = async (req, res) => {
-  try {
-    const authorize = authorization(req);
-    if (authorize) {
-      const { id } = req?.params;
-
-      const category = await expense_categories?.findById(id);
-      if (!category) {
-        failed_400(res, "Expense category not found");
-      } else {
-        success_200(res, "", category);
-      }
-    } else {
-      unauthorized(res);
-    }
-  } catch (errors) {
-    catch_400(res, errors?.message);
-  }
-};
-
-const get_all_expense_categories = async (req, res) => {
-  try {
-    const authorize = authorization(req);
-    if (authorize) {
-      const { search } = req?.body;
-
-      const categoryList = { branch: authorize?.branch };
-      search && (categoryList.name = { $regex: search, $options: "i" });
-
-      const allCategory = await expense_categories?.find(categoryList);
-
-      success_200(res, "", allCategory);
-    } else {
-      unauthorized(res);
-    }
-  } catch (errors) {
-    catch_400(res, errors?.message);
-  }
-};
-
-const get_create_expense = async (req, res) => {
-  try {
-    const authorize = authorization(req);
-    if (authorize) {
-      const allCategories = await expense_categories?.find({
+      const total_expense = await expenses.countDocuments({
         branch: authorize?.branch,
       });
-      const allUsers = await users
-        ?.find({
-          branch: authorize?.branch,
-          role: { $ne: "SUPERADMIN" },
-        })
-        .select("-password");
 
-      const data = {
-        categories: allCategories,
-        users: allUsers,
-      };
-      success_200(res, "", data);
+      const next_expense_number = number + total_expense;
+
+      const existing_expense_number = await expenses.findOne({
+        number: next_expense_number,
+        branch: authorize?.branch,
+      });
+
+      if (existing_expense_number) {
+        return await get_next_expense(req, res, next_expense_number);
+      } else {
+        return next_expense_number;
+      }
     } else {
       unauthorized(res);
     }
@@ -166,40 +42,32 @@ const get_create_expense = async (req, res) => {
 const create_expense = async (req, res) => {
   try {
     const authorize = authorization(req);
-    if (authorize) {
-      const {
-        expenses_category,
-        amount,
-        reference,
-        date,
-        description,
-        file,
-        status,
-        branch,
-      } = req?.body;
 
-      if (!expenses_category || !amount || !reference || !date) {
+    if (authorize) {
+      const { number, date, category, description, amount, status, branch } =
+        req?.body;
+
+      let new_number = await get_next_expense(req, res, 1000);
+      let assigned_number = number ? number : new_number;
+
+      if (!assigned_number || !date || !category || !amount) {
         incomplete_400(res);
       } else {
         const expense = new expenses({
-          expenses_category: expenses_category,
-          amount: amount ? amount : 0,
-          reference: reference,
+          number: assigned_number,
           date: date,
+          category: checknull(category),
           description: description,
-          file: file ? file : "",
+          amount: amount,
           status: status ? status : 0,
           ref: authorize?.ref,
           branch: branch ? branch : authorize?.branch,
           created: new Date(),
-          updated: new Date(),
           created_by: authorize?.id,
-          updated_by: authorize?.id,
         });
 
-        const expenseToSave = await expense?.save();
-
-        success_200(res, "Expense created", expenseToSave);
+        const expense_save = await expense?.save();
+        success_200(res, "Expense created");
       }
     } else {
       unauthorized(res);
@@ -212,44 +80,99 @@ const create_expense = async (req, res) => {
 const update_expense = async (req, res) => {
   try {
     const authorize = authorization(req);
+
     if (authorize) {
       const {
         id,
-        expenses_category,
-        amount,
-        reference,
+        number,
         date,
+        category,
         description,
-        file,
+        amount,
         status,
         branch,
       } = req?.body;
 
-      if (!id || !expenses_category || !amount || !reference || !date) {
+      let new_number = await get_next_expense(req, res, 1000);
+      let assigned_number = number ? number : new_number;
+
+      if (!id || !assigned_number || !date || !category || !amount) {
         incomplete_400(res);
       } else {
-        const expense = await expenses?.findById(id);
+        const selected_expense = await expenses?.findById(id);
 
-        if (expense) {
-          expense.expenses_category = expenses_category
-            ? expenses_category
-            : "";
-          expense.amount = amount ? amount : 0;
-          expense.reference = reference ? reference : "";
-          expense.date = date ? date : "";
-          expense.description = description ? description : "";
-          expense.file = file ? file : "";
-          expense.status = status ? status : 0;
-          (expense.ref = authorize?.ref),
-            (expense.branch = branch ? branch : authorize?.branch);
-          expense.updated = new Date();
-          expense.updated_by = authorize?.id;
-
-          const expenseToUpdate = await expense?.save();
-
-          success_200(res, "Expense updated", expenseToUpdate);
-        } else {
+        if (!selected_expense || selected_expense?.status == 2) {
           failed_400(res, "Expense not found");
+        } else {
+          const expense_log = new expenses_log({
+            number: selected_expense?.number,
+            date: selected_expense?.date,
+            category: selected_expense?.category,
+            description: selected_expense?.description,
+            amount: selected_expense?.amount,
+            status: selected_expense?.status,
+            ref: selected_expense?.ref,
+            branch: selected_expense?.branch,
+            updated: new Date(),
+            updated_by: authorize?.id,
+          });
+
+          const expense_log_save = await expense_log?.save();
+
+          selected_expense.number = assigned_number;
+          selected_expense.date = date;
+          selected_expense.category = category;
+          selected_expense.description = description;
+          selected_expense.amount = amount;
+          selected_expense.status = status ? status : 0;
+          selected_expense.branch = branch ? branch : authorize?.branch;
+
+          const expense_save = await selected_expense?.save();
+          success_200(res, "Expense updated");
+        }
+      }
+    } else {
+      unauthorized(res);
+    }
+  } catch (errors) {
+    catch_400(res, errors?.message);
+  }
+};
+
+const delete_expense = async (req, res) => {
+  try {
+    const authorize = authorization(req);
+
+    if (authorize) {
+      const { id } = req?.body;
+
+      if (!id) {
+        incomplete_400(res);
+      } else {
+        const selected_expense = await expenses?.findById(id);
+
+        if (!selected_expense || selected_expense?.status == 2) {
+          failed_400(res, "Expense not found");
+        } else {
+          const expense_log = new expenses_log({
+            number: selected_expense?.number,
+            date: selected_expense?.date,
+            category: selected_expense?.category,
+            description: selected_expense?.description,
+            amount: selected_expense?.amount,
+            status: selected_expense?.status,
+            ref: selected_expense?.ref,
+            branch: selected_expense?.branch,
+            updated: new Date(),
+            updated_by: authorize?.id,
+          });
+
+          const expense_log_save = await expense_log?.save();
+
+          selected_expense.status = 2;
+          const delete_expense = await selected_expense?.save();
+
+          success_200(res, "Expense deleted");
         }
       }
     } else {
@@ -263,32 +186,22 @@ const update_expense = async (req, res) => {
 const get_expense = async (req, res) => {
   try {
     const authorize = authorization(req);
+
     if (authorize) {
-      const { id } = req?.params;
+      const { id } = req?.body;
 
-      const expense = await expenses
-        ?.findById(id)
-        .populate({ path: "expenses_category", select: ["name"] })
-        .populate({ path: "reference", select: ["first_name", "last_name"] });
-      const allCategories = await expense_categories?.find({
-        branch: authorize?.branch,
-      });
-      const allUsers = await users
-        ?.find({
-          branch: authorize?.branch,
-          role: { $ne: "SUPERADMIN" },
-        })
-        .select("-password");
-
-      if (!expense) {
-        failed_400(res, "Expense not found");
+      if (!id) {
+        incomplete_400(res);
       } else {
-        const data = {
-          expense: expense,
-          categories: allCategories,
-          users: allUsers,
-        };
-        success_200(res, "", data);
+        const selected_expense = await expenses
+          ?.findById(id)
+          ?.populate({ path: "category", match: { status: 1 } });
+
+        if (!selected_expense || selected_expense?.status == 2) {
+          failed_400(res, "Expense not found");
+        } else {
+          success_200(res, "", selected_expense);
+        }
       }
     } else {
       unauthorized(res);
@@ -301,17 +214,109 @@ const get_expense = async (req, res) => {
 const get_all_expenses = async (req, res) => {
   try {
     const authorize = authorization(req);
+
+    if (!authorize) {
+      return unauthorized(res);
+    }
+
+    const { search, category, status, sort, date, page, limit } = req?.body;
+
+    const page_number = Number(page) || 1;
+    const page_limit = Number(limit) || 10;
+
+    const expensesList = { branch: authorize?.branch, status: { $ne: 2 } };
+
+    if (search) {
+      expensesList.number = { $regex: search, $options: "i" };
+    }
+    if (category) {
+      expensesList.category = category;
+    }
+    if (status) {
+      expensesList.status = status;
+    }
+    if (status == 0) {
+      expensesList.status = status;
+    }
+    if (date?.start && date?.end) {
+      expensesList.date = {
+        $gte: new Date(date?.start),
+        $lte: new Date(date?.end),
+      };
+    }
+
+    let sortOption = { date: 1 };
+    if (sort == 1) {
+      sortOption = { amount: 1 };
+    } else if (sort == 2) {
+      sortOption = { amount: -1 };
+    }
+
+    // Get total count for pagination metadata
+    const totalCount = await expenses.countDocuments(expensesList);
+
+    // Fetch paginated data
+    const paginated_expenses = await expenses
+      .find(expensesList)
+      .populate({ path: "category", match: { status: 1 } })
+      .sort(sortOption)
+      .skip((page_number - 1) * page_limit)
+      .limit(page_limit);
+
+    const totalPages = Math.ceil(totalCount / page_limit);
+
+    success_200(res, "", {
+      currentPage: page_number,
+      totalPages,
+      totalCount,
+      data: paginated_expenses,
+    });
+  } catch (errors) {
+    catch_400(res, errors?.message);
+  }
+};
+
+const get_expense_log = async (req, res) => {
+  try {
+    const authorize = authorization(req);
+
     if (authorize) {
-      const { search } = req?.body;
+      const { id } = req?.body;
 
-      const expencesList = { branch: authorize?.branch };
-      search && (expencesList.name = { $regex: search, $options: "i" });
+      if (!id) {
+        incomplete_400(res);
+      } else {
+        const selected_expense_log = await expenses_log?.findById(id);
 
-      const allExpenses = await expenses
-        ?.find(expencesList)
-        .populate({ path: "reference", select: ["first_name", "last_name"] })
-        .populate({ path: "expenses_category", select: ["name"] });
-      success_200(res, "", allExpenses);
+        if (!selected_expense_log) {
+          failed_400(res, "Expense not found");
+        } else {
+          success_200(res, "", selected_expense_log);
+        }
+      }
+    } else {
+      unauthorized(res);
+    }
+  } catch (errors) {
+    catch_400(res, errors?.message);
+  }
+};
+
+const get_all_expenses_log = async (req, res) => {
+  try {
+    const authorize = authorization(req);
+
+    if (authorize) {
+      const { expense } = req?.body;
+
+      if (!item) {
+        incomplete_400(res);
+      } else {
+        const all_expense_log = await expenses_log?.find({
+          expense: expense,
+        });
+        success_200(res, "", all_expense_log);
+      }
     } else {
       unauthorized(res);
     }
@@ -321,13 +326,11 @@ const get_all_expenses = async (req, res) => {
 };
 
 module.exports = {
-  create_expense_category,
-  update_expense_category,
-  get_expense_category,
-  get_all_expense_categories,
-  get_create_expense,
   create_expense,
   update_expense,
+  delete_expense,
   get_expense,
   get_all_expenses,
+  get_expense_log,
+  get_all_expenses_log,
 };

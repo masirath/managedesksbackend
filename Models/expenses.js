@@ -1,29 +1,27 @@
 const mongoose = require("mongoose");
 
-const expenses_schema = new mongoose.Schema({
-  expenses_category: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "expense_categories",
-  },
-  amount: {
+const expenses_schema = mongoose.Schema({
+  number: {
     required: true,
     type: String,
-  },
-  reference: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "users",
   },
   date: {
     required: true,
     type: Date,
   },
+  category: {
+    required: true,
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "expense_categories",
+  },
   description: {
     required: false,
     type: String,
   },
-  file: {
-    required: false,
-    type: String,
+  amount: {
+    required: true,
+    type: Number,
+    default: 0,
   },
   status: {
     required: true,
@@ -32,25 +30,19 @@ const expenses_schema = new mongoose.Schema({
   },
   ref: {
     required: true,
-    type: String,
+    type: Number,
   },
   branch: {
+    required: true,
     type: mongoose.Schema.Types.ObjectId,
-    ref: "branch",
+    ref: "branches",
   },
   created: {
     required: true,
     type: Date,
   },
-  updated: {
-    required: true,
-    type: Date,
-  },
   created_by: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "users",
-  },
-  updated_by: {
+    required: true,
     type: mongoose.Schema.Types.ObjectId,
     ref: "users",
   },

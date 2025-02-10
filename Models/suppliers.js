@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const suppliers_schema = new mongoose.Schema({
+const suppliers_schema = mongoose.Schema({
   name: {
     required: true,
     type: String,
@@ -10,6 +10,14 @@ const suppliers_schema = new mongoose.Schema({
     type: String,
   },
   phone: {
+    required: true,
+    type: String,
+  },
+  catalog: {
+    required: false,
+    type: String,
+  },
+  tax: {
     required: false,
     type: String,
   },
@@ -29,10 +37,6 @@ const suppliers_schema = new mongoose.Schema({
     required: false,
     type: String,
   },
-  tax_number: {
-    required: false,
-    type: String,
-  },
   status: {
     required: true,
     type: Number,
@@ -40,21 +44,19 @@ const suppliers_schema = new mongoose.Schema({
   },
   ref: {
     required: true,
-    type: String,
+    type: Number,
   },
   branch: {
+    required: true,
     type: mongoose.Schema.Types.ObjectId,
-    ref: "branch",
+    ref: "branches",
   },
   created: {
     required: true,
     type: Date,
   },
-  updated: {
-    required: true,
-    type: Date,
-  },
   created_by: {
+    required: true,
     type: mongoose.Schema.Types.ObjectId,
     ref: "users",
   },
