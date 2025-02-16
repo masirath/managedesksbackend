@@ -14,8 +14,18 @@ const create_customer = async (req, res) => {
     const authorize = authorization(req);
 
     if (authorize) {
-      const { name, email, phone, area, city, state, country, status, branch } =
-        req?.body;
+      const {
+        name,
+        email,
+        phone,
+        tax,
+        area,
+        city,
+        state,
+        country,
+        status,
+        branch,
+      } = req?.body;
 
       if (!phone) {
         incomplete_400(res);
@@ -32,6 +42,7 @@ const create_customer = async (req, res) => {
             name: name,
             email: email,
             phone: phone,
+            tax: tax,
             area: area,
             city: city,
             state: state,
@@ -65,6 +76,7 @@ const update_customer = async (req, res) => {
         name,
         email,
         phone,
+        tax,
         area,
         city,
         state,
@@ -95,6 +107,7 @@ const update_customer = async (req, res) => {
               name: selected_customer?.name,
               email: selected_customer?.email,
               phone: selected_customer?.phone,
+              tax: selected_customer?.tax,
               area: selected_customer?.area,
               city: selected_customer?.city,
               state: selected_customer?.state,
@@ -110,6 +123,7 @@ const update_customer = async (req, res) => {
             selected_customer.name = name;
             selected_customer.email = email;
             selected_customer.phone = phone;
+            selected_customer.tax = tax;
             selected_customer.area = area;
             selected_customer.city = city;
             selected_customer.state = state;
