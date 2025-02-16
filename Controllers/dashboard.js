@@ -46,6 +46,7 @@ const get_dashboard = async (req, res) => {
         ref: authorize.ref,
         branch: authorize.branch,
         status: 1,
+        stock: { $gt: 0 },
       }),
       products.find(
         { ref: authorize.ref, branch: authorize.branch, status: 1 },

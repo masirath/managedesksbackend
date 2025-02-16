@@ -14,6 +14,10 @@ const customers_schema = mongoose.Schema({
     required: true,
     type: String,
   },
+  tax: {
+    required: true,
+    type: String,
+  },
   area: {
     required: false,
     type: String,
