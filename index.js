@@ -23,7 +23,6 @@ const roles = require("./Routes/roles");
 const requests = require("./Routes/requests");
 const transfers = require("./Routes/transfers");
 const received = require("./Routes/received");
-const quotes = require("./Routes/quotes");
 
 const Environment = environment();
 
@@ -84,7 +83,6 @@ app.use(roles);
 app.use(requests);
 app.use(transfers);
 app.use(received);
-app.use(quotes);
 
 app.listen(PORT, () => {
   console.log(`Server started at ${PORT}`);

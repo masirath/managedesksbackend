@@ -288,8 +288,6 @@ const create_purchases_return = async (req, res) => {
                   let total_unit_stock =
                     parseFloat(delivered || 0) / parseFloat(conversion || 0);
 
-                  console.log(total_unit_stock, stock);
-
                   if (
                     parseFloat(total_unit_stock || 0) <= parseFloat(stock || 0)
                   ) {
@@ -447,22 +445,22 @@ const create_purchases_return = async (req, res) => {
                 : 0;
               let data_delivery_date = delivery_date ? delivery_date : "";
 
-              if (parseFloat(data_delivery_status) == 2) {
-                if (
-                  parseFloat(delivery_count) == purchases_return_details?.length
-                ) {
-                  data_delivery_status = 2;
-                } else if (
-                  parseFloat(delivery_count) > 0 &&
-                  parseFloat(delivery_count) < purchases_return_details?.length
-                ) {
-                  data_delivery_status = 1;
-                  data_delivery_date = "";
-                } else {
-                  data_delivery_status = 0;
-                  data_delivery_date = "";
-                }
+              // if (parseFloat(data_delivery_status) == 2) {
+              if (
+                parseFloat(delivery_count) == purchases_return_details?.length
+              ) {
+                data_delivery_status = 2;
+              } else if (
+                parseFloat(delivery_count) > 0 &&
+                parseFloat(delivery_count) < purchases_return_details?.length
+              ) {
+                data_delivery_status = 1;
+                data_delivery_date = "";
+              } else {
+                data_delivery_status = 0;
+                data_delivery_date = "";
               }
+              // }
 
               //grand total
               let purchases_return_discount = 0;
@@ -516,21 +514,21 @@ const create_purchases_return = async (req, res) => {
               let data_payment_status = payment_status
                 ? parseFloat(payment_status || 0)
                 : 0;
-              if (parseFloat(data_payment_status) == 2) {
-                if (
-                  parseFloat(purchases_return_paid) == parseFloat(grand_total)
-                ) {
-                  data_payment_status = 2;
-                } else if (
-                  parseFloat(purchases_return_paid) > 0 &&
-                  parseFloat(purchases_return_paid) < parseFloat(grand_total)
-                ) {
-                  data_payment_status = 1;
-                } else {
-                  purchases_return_payment_details = [];
-                  data_payment_status = 0;
-                }
+              // if (parseFloat(data_payment_status) == 2) {
+              if (
+                parseFloat(purchases_return_paid) == parseFloat(grand_total)
+              ) {
+                data_payment_status = 2;
+              } else if (
+                parseFloat(purchases_return_paid) > 0 &&
+                parseFloat(purchases_return_paid) < parseFloat(grand_total)
+              ) {
+                data_payment_status = 1;
+              } else {
+                purchases_return_payment_details = [];
+                data_payment_status = 0;
               }
+              // }
 
               //order payment
               if (purchases_return_payment_details?.length > 0) {
@@ -1107,24 +1105,22 @@ const update_purchases_return = async (req, res) => {
                   : 0;
                 let data_delivery_date = delivery_date ? delivery_date : "";
 
-                if (parseFloat(data_delivery_status) == 2) {
-                  if (
-                    parseFloat(delivery_count) ==
-                    purchases_return_details?.length
-                  ) {
-                    data_delivery_status = 2;
-                  } else if (
-                    parseFloat(delivery_count) > 0 &&
-                    parseFloat(delivery_count) <
-                      purchases_return_details?.length
-                  ) {
-                    data_delivery_status = 1;
-                    data_delivery_date = "";
-                  } else {
-                    data_delivery_status = 0;
-                    data_delivery_date = "";
-                  }
+                // if (parseFloat(data_delivery_status) == 2) {
+                if (
+                  parseFloat(delivery_count) == purchases_return_details?.length
+                ) {
+                  data_delivery_status = 2;
+                } else if (
+                  parseFloat(delivery_count) > 0 &&
+                  parseFloat(delivery_count) < purchases_return_details?.length
+                ) {
+                  data_delivery_status = 1;
+                  data_delivery_date = "";
+                } else {
+                  data_delivery_status = 0;
+                  data_delivery_date = "";
                 }
+                // }
 
                 //grand total
                 let purchases_return_discount = 0;
@@ -1142,6 +1138,11 @@ const update_purchases_return = async (req, res) => {
                   parseFloat(purchases_return_discount);
 
                 //payment status
+                const purchase_payments_delete =
+                  await purchases_returns_payments?.deleteMany({
+                    purchases_return: id,
+                  });
+
                 let purchases_return_payment_types = payment_types
                   ? JSON?.parse(payment_types)
                   : "";
@@ -1178,28 +1179,28 @@ const update_purchases_return = async (req, res) => {
                 let data_payment_status = payment_status
                   ? parseFloat(payment_status || 0)
                   : 0;
-                if (parseFloat(data_payment_status) == 2) {
-                  if (
-                    parseFloat(purchases_return_paid) == parseFloat(grand_total)
-                  ) {
-                    data_payment_status = 2;
-                  } else if (
-                    parseFloat(purchases_return_paid) > 0 &&
-                    parseFloat(purchases_return_paid) < parseFloat(grand_total)
-                  ) {
-                    data_payment_status = 1;
-                  } else {
-                    purchases_return_payment_details = [];
-                    data_payment_status = 0;
-                  }
+                // if (parseFloat(data_payment_status) == 2) {
+                if (
+                  parseFloat(purchases_return_paid) == parseFloat(grand_total)
+                ) {
+                  data_payment_status = 2;
+                } else if (
+                  parseFloat(purchases_return_paid) > 0 &&
+                  parseFloat(purchases_return_paid) < parseFloat(grand_total)
+                ) {
+                  data_payment_status = 1;
+                } else {
+                  purchases_return_payment_details = [];
+                  data_payment_status = 0;
                 }
+                // }
 
                 //order payment
                 if (purchases_return_payment_details?.length > 0) {
                   for (value of purchases_return_payment_details) {
                     const purchases_return_payment =
                       await purchases_returns_payments({
-                        purchases_return: purchases_return_save?._id,
+                        purchases_return: id,
                         name: value?.name,
                         amount: value?.amount,
                         status: status ? status : 0,
@@ -1324,7 +1325,7 @@ const get_purchases_return = async (req, res) => {
               })
               ?.populate({
                 path: "description",
-                match: { status: { $ne: 2 } },
+                // match: { status: { $ne: 2 } },
               });
 
           let purchases_return_details_and_units = [];
@@ -1406,16 +1407,28 @@ const get_all_purchases_returns = async (req, res) => {
     if (status == 0) purchases_returnsList.status = status;
 
     if (date?.start && date?.end) {
+      let startDate = new Date(date.start);
+      startDate.setHours(0, 0, 0, 0);
+
+      let endDate = new Date(date.end);
+      endDate.setHours(23, 59, 59, 999);
+
       purchases_returnsList.date = {
-        $gte: new Date(date?.start),
-        $lte: new Date(date?.end),
+        $gte: startDate,
+        $lte: endDate,
       };
     }
 
     if (due_date?.start && due_date?.end) {
+      let startDate = new Date(due_date.start);
+      startDate.setHours(0, 0, 0, 0);
+
+      let endDate = new Date(due_date.end);
+      endDate.setHours(23, 59, 59, 999);
+
       purchases_returnsList.due_date = {
-        $gte: new Date(due_date?.start),
-        $lte: new Date(due_date?.end),
+        $gte: startDate,
+        $lte: endDate,
       };
     }
 

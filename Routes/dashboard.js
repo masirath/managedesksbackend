@@ -9,6 +9,8 @@ const {
   get_all_inventories_expired_reports,
   get_sales_reports,
   get_purchase_reports,
+  get_purchase_return_reports,
+  get_fast_moving_products_reports,
 } = require("../Controllers/dashboard");
 const dashboard = express.Router();
 
@@ -34,8 +36,17 @@ dashboard.post(
   get_all_inventories_expired_reports
 );
 
+dashboard.post("/api/get-purchase-return-reports", get_purchase_return_reports);
+
 dashboard.post("/api/get-sales-reports", get_sales_reports);
 
 dashboard.post("/api/get-purchase-reports", get_purchase_reports);
+
+dashboard.post("/api/get-purchase-return-reports", get_purchase_return_reports);
+
+dashboard.post(
+  "/api/get-fast-moving-products-reports",
+  get_fast_moving_products_reports
+);
 
 module.exports = dashboard;

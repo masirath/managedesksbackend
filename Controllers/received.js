@@ -124,7 +124,7 @@ const create_receive = async (req, res) => {
         console.log(selected_transfer, "selected_transfer");
 
         if (selected_transfer?.received) {
-          success_200(res, "Already added to inventory");
+          failed_400(res, "Transfer already done");
         } else {
           const selected_purchase_number = await transfers?.findOne({
             _id: { $ne: transfer },
@@ -253,10 +253,12 @@ const create_receive = async (req, res) => {
                           //     ?.populate("name");
 
                           return {
-                            name: selected_product_units_detail?.name?.name,
-                            quantity: selected_product_units_detail?.quantity
-                              ? selected_product_units_detail?.quantity
-                              : 0,
+                            name: v?.name,
+                            quantity: v?.quantity ? v?.quantity : 0,
+                            // name: selected_product_units_detail?.name?.name,
+                            // quantity: selected_product_units_detail?.quantity
+                            //   ? selected_product_units_detail?.quantity
+                            //   : 0,
                             price_per_unit: purchase_price_per_unit
                               ? parseFloat(purchase_price_per_unit) /
                                 parseFloat(v?.conversion)
@@ -721,7 +723,7 @@ const update_receive = async (req, res) => {
       branch,
     } = req.body;
 
-    success_200(res, "Received order updated.");
+    failed_400(res, "Transfer already Received");
   } catch (err) {
     await session.abortTransaction();
     session.endSession();
@@ -968,16 +970,15 @@ const get_all_received = async (req, res) => {
     if (status == 0) transfersList.status = status;
 
     if (date?.start && date?.end) {
-      transfersList.date = {
-        $gte: new Date(date?.start),
-        $lte: new Date(date?.end),
-      };
-    }
+      let startDate = new Date(date.start);
+      startDate.setHours(0, 0, 0, 0);
 
-    if (due_date?.start && due_date?.end) {
-      transfersList.due_date = {
-        $gte: new Date(due_date?.start),
-        $lte: new Date(due_date?.end),
+      let endDate = new Date(date.end);
+      endDate.setHours(23, 59, 59, 999);
+
+      transfersList.date = {
+        $gte: startDate,
+        $lte: endDate,
       };
     }
 

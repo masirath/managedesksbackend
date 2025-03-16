@@ -13,14 +13,57 @@ const sales_returns_payments = require("../Models/sales_returns_payments");
 const invoices_details = require("../Models/invoices_details");
 const purchases_orders_payment = require("../Models/purchases_orders_payment");
 const purchase_orders_payments = require("../Models/purchase_orders_payments");
+const purchases_returns = require("../Models/purchases_returns");
+const purchases_returns_payments = require("../Models/purchases_returns_payments");
+const expenses = require("../Models/expenses");
+const roles = require("../Models/roles");
+const roles_details = require("../Models/roles_details");
 
 const get_dashboard = async (req, res) => {
   try {
     const authorize = authorization(req);
     if (!authorize) return unauthorized(res);
 
-    const { date } = req?.body;
+    let viewpurchase = false;
+    if (authorize?.role != "SUPERADMIN") {
+      const get_role_details = await roles_details?.find({
+        role: authorize?.role,
+      });
+
+      for (value of get_role_details) {
+        if (value?.name == "Purchases" && value?.view) {
+          viewpurchase = true;
+        }
+      }
+    } else if (authorize?.role == "SUPERADMIN") {
+      viewpurchase = true;
+    } else {
+      viewpurchase = false;
+    }
+
+    const { date, branch, key } = req?.body;
     if (!date) return res.status(400).json({ message: "Date is required" });
+
+    let selected_branch = authorize?.branch;
+    let selected_supplier = authorize?.branch;
+
+    if (branch == "ALL" && authorize?.role == "SUPERADMIN") {
+      selected_branch = "ALL";
+      selected_supplier = "ALL";
+    } else if (branch != "ALL" && authorize?.role == "SUPERADMIN") {
+      selected_branch = branch ? branch : authorize?.branch;
+      selected_supplier = branch ? branch : authorize?.branch;
+    }
+
+    const queryConditions = { ref: authorize.ref };
+    if (selected_branch !== "ALL") {
+      queryConditions.branch = selected_branch;
+    }
+
+    const requestQueryConditions = { ref: authorize.ref };
+    if (selected_supplier !== "ALL") {
+      requestQueryConditions.supplier = selected_supplier;
+    }
 
     // Convert the received date into a valid Date object and extract the day range
     const selectedDate = new Date(date);
@@ -34,41 +77,71 @@ const get_dashboard = async (req, res) => {
       all_products,
       all_invoices,
       all_sales_returns,
+      all_purchases,
+      all_purchase_returns,
+      all_expenses,
       recent_invoices,
       inventory_requestes,
     ] = await Promise.all([
       products.countDocuments({
-        ref: authorize.ref,
-        branch: authorize.branch,
+        ...queryConditions,
+        // ref: authorize.ref,
+        // branch: selected_branch,
         status: 1,
       }),
       inventories.countDocuments({
-        ref: authorize.ref,
-        branch: authorize.branch,
+        ...queryConditions,
+        // ref: authorize.ref,
+        // branch: selected_branch,
         status: 1,
         stock: { $gt: 0 },
       }),
       products.find(
-        { ref: authorize.ref, branch: authorize.branch, status: 1 },
-        { _id: 1, stock: 1, expiry: 1 }
+        { ...queryConditions, status: 1 }
+        // { ref: authorize.ref, branch: selected_branch, status: 1 },
+        // { _id: 1, }
       ),
       invoices.find({
+        ...queryConditions,
+        // ref: authorize.ref,
+        // branch: selected_branch,
         date: { $gte: startOfDay, $lt: endOfDay },
-        ref: authorize.ref,
-        branch: authorize.branch,
         status: 1,
       }),
       sales_returns.find({
+        ...queryConditions,
+        // ref: authorize.ref,
+        // branch: selected_branch,
         date: { $gte: startOfDay, $lt: endOfDay },
-        ref: authorize.ref,
-        branch: authorize.branch,
         status: 1,
+      }),
+      purchase_orders.find({
+        ...queryConditions,
+        date: { $gte: startOfDay, $lt: endOfDay },
+        // ref: authorize.ref,
+        // branch: selected_branch,
+        status: 1,
+      }),
+      purchases_returns.find({
+        ...queryConditions,
+        date: { $gte: startOfDay, $lt: endOfDay },
+        // ref: authorize.ref,
+        // branch: selected_branch,
+        status: 1,
+      }),
+      expenses.find({
+        ...queryConditions,
+        date: { $gte: startOfDay, $lt: endOfDay },
+        // ref: authorize.ref,
+        // branch: selected_branch,
+        status: { $ne: 2 },
       }),
       invoices
         .find({
+          ...queryConditions,
           date: { $gte: startOfDay, $lt: endOfDay },
-          ref: authorize.ref,
-          branch: authorize.branch,
+          // ref: authorize.ref,
+          // branch: selected_branch,
           status: 1,
         })
         .populate("created_by")
@@ -77,9 +150,9 @@ const get_dashboard = async (req, res) => {
       requests
         .find({
           date: { $gte: startOfDay, $lt: endOfDay },
-          ref: authorize.ref,
-          supplier: authorize.branch,
-          status: 1,
+          ...requestQueryConditions,
+          // ref: authorize.ref,
+          // supplier: authorize.branch,
         })
         .populate("branch")
         .populate("created_by")
@@ -199,11 +272,12 @@ const get_dashboard = async (req, res) => {
       });
 
       total_customer_paid += invoice_paid;
-      total_customer_payable += parseFloat(invoice.total) - invoice_paid;
+      total_customer_payable +=
+        parseFloat(invoice.total || 0) - parseFloat(invoice_paid || 0);
     });
 
     // Process sales returns data
-    let total_sales_returns_sales = 0;
+    let total_sales_returns = 0;
     let total_sales_returns_discount = 0;
     let total_sales_returns_delivery = 0;
     let total_sales_returns_cash = 0;
@@ -229,7 +303,7 @@ const get_dashboard = async (req, res) => {
     });
 
     all_sales_returns.forEach((sales_return) => {
-      total_sales_returns_sales += parseFloat(sales_return.total) || 0;
+      total_sales_returns += parseFloat(sales_return.total) || 0;
       total_sales_returns_discount += parseFloat(sales_return.discount) || 0;
       total_sales_returns_delivery += parseFloat(sales_return.delivery) || 0;
 
@@ -266,6 +340,187 @@ const get_dashboard = async (req, res) => {
         parseFloat(sales_return.total) - sales_returns_paid;
     });
 
+    // Process purchase data
+    let total_purchases = 0;
+    let total_purchases_discount = 0;
+    let total_purchases_delivery = 0;
+    let total_purchases_cash = 0;
+    let total_purchases_debit_card = 0;
+    let total_purchases_credit_card = 0;
+    let total_purchases_bank_transfer = 0;
+    let total_purchases_online_payment = 0;
+    let total_purchases_cheque = 0;
+    let total_supplier_paid = 0;
+    let total_supplier_payable = 0;
+
+    if (viewpurchase) {
+      const purchaseIds = all_purchases.map((i) => i._id);
+      const purchase_payments = await purchase_orders_payments.find({
+        purchase: { $in: purchaseIds },
+      });
+
+      const purchasePaymentMap = {};
+      purchase_payments.forEach((p) => {
+        if (!purchasePaymentMap[p.purchase])
+          purchasePaymentMap[p.purchase] = [];
+        purchasePaymentMap[p.purchase].push(p);
+      });
+
+      all_purchases.forEach((purchase) => {
+        total_purchases += parseFloat(purchase.total) || 0;
+        total_purchases_discount += parseFloat(purchase.discount) || 0;
+        total_purchases_delivery += parseFloat(purchase.delivery) || 0;
+
+        let purchase_paid = 0;
+
+        (purchasePaymentMap[purchase._id] || []).forEach((payment) => {
+          const amount = parseFloat(payment.amount) || 0;
+          purchase_paid += amount;
+
+          switch (payment.name) {
+            case "Cash":
+              total_purchases_cash += amount;
+              break;
+            case "Debit card":
+              total_purchases_debit_card += amount;
+              break;
+            case "Credit card":
+              total_purchases_credit_card += amount;
+              break;
+            case "Bank transfer":
+              total_purchases_bank_transfer += amount;
+              break;
+            case "Online payment":
+              total_purchases_online_payment += amount;
+              break;
+            case "Cheque":
+              total_purchases_cheque += amount;
+              break;
+          }
+        });
+
+        total_supplier_paid += purchase_paid;
+        total_supplier_payable +=
+          parseFloat(purchase.total || 0) - parseFloat(purchase_paid || 0);
+      });
+    }
+
+    // Process purchase returns data
+    let total_purchase_return = 0;
+    let total_purchase_return_discount = 0;
+    let total_purchase_return_delivery = 0;
+    let total_purchase_return_cash = 0;
+    let total_purchase_return_debit_card = 0;
+    let total_purchase_return_credit_card = 0;
+    let total_purchase_return_bank_transfer = 0;
+    let total_purchase_return_online_payment = 0;
+    let total_purchase_return_cheque = 0;
+    let total_purchase_return_supplier_paid = 0;
+    let total_purchase_return_supplier_payable = 0;
+
+    if (viewpurchase) {
+      const purchaseReturnsIds = all_purchase_returns.map((i) => i._id);
+      const purchase_returns_payments = await purchases_returns_payments.find({
+        purchases_return: { $in: purchaseReturnsIds },
+      });
+
+      const purchaseReturnPaymentMap = {};
+      purchase_returns_payments.forEach((p) => {
+        if (!purchaseReturnPaymentMap[p.purchases_return])
+          purchaseReturnPaymentMap[p.purchases_return] = [];
+        purchaseReturnPaymentMap[p.purchases_return].push(p);
+      });
+
+      all_purchase_returns.forEach((purchase_return) => {
+        total_purchase_return += parseFloat(purchase_return.total) || 0;
+        total_purchase_return_discount +=
+          parseFloat(purchase_return.discount) || 0;
+        total_purchase_return_delivery +=
+          parseFloat(purchase_return.delivery) || 0;
+
+        let purchase_return_paid = 0;
+
+        (purchaseReturnPaymentMap[purchase_return._id] || []).forEach(
+          (payment) => {
+            const amount = parseFloat(payment.amount) || 0;
+            purchase_return_paid += amount;
+
+            switch (payment.name) {
+              case "Cash":
+                total_purchase_return_cash += amount;
+                break;
+              case "Debit card":
+                total_purchase_return_debit_card += amount;
+                break;
+              case "Credit card":
+                total_purchase_return_credit_card += amount;
+                break;
+              case "Bank transfer":
+                total_purchase_return_bank_transfer += amount;
+                break;
+              case "Online payment":
+                total_purchase_return_online_payment += amount;
+                break;
+              case "Cheque":
+                total_purchase_return_cheque += amount;
+                break;
+            }
+          }
+        );
+
+        total_purchase_return_supplier_paid += purchase_return_paid;
+        total_purchase_return_supplier_payable +=
+          parseFloat(purchase_return.total || 0) -
+          parseFloat(purchase_return_paid || 0);
+      });
+    }
+
+    let total_expenses = 0;
+    let total_expenses_cash = 0;
+    let total_expenses_debit_card = 0;
+    let total_expenses_credit_card = 0;
+    let total_expenses_bank_transfer = 0;
+    let total_expenses_online_payment = 0;
+    let total_expenses_return_cheque = 0;
+
+    all_expenses.forEach((expenses) => {
+      total_expenses += parseFloat(expenses.amount) || 0;
+
+      const amount = parseFloat(expenses.amount) || 0;
+
+      switch (expenses.name) {
+        case "Cash":
+          total_expenses_cash += amount;
+          break;
+        case "Debit card":
+          total_expenses_debit_card += amount;
+          break;
+        case "Credit card":
+          total_expenses_credit_card += amount;
+          break;
+        case "Bank transfer":
+          total_expenses_bank_transfer += amount;
+          break;
+        case "Online payment":
+          total_expenses_online_payment += amount;
+          break;
+        case "Cheque":
+          total_expenses_return_cheque += amount;
+          break;
+      }
+    });
+
+    let grand_total = 0;
+
+    let profit =
+      parseFloat(total_sales || 0) + parseFloat(total_purchase_return || 0);
+    let loss =
+      parseFloat(total_purchases || 0) +
+      parseFloat(total_sales_returns || 0) +
+      parseFloat(total_expenses || 0);
+
+    grand_total = parseFloat(profit || 0) - parseFloat(loss || 0);
+
     let data = {
       total_products,
       total_inventories,
@@ -273,6 +528,7 @@ const get_dashboard = async (req, res) => {
       total_out_of_stock,
       total_expired,
       total_near_expiry,
+      //sales
       total_sales,
       total_discount,
       total_delivery,
@@ -284,7 +540,8 @@ const get_dashboard = async (req, res) => {
       total_cheque,
       total_customer_paid,
       total_customer_payable,
-      total_sales_returns_sales,
+      //sales return
+      total_sales_returns,
       total_sales_returns_discount,
       total_sales_returns_delivery,
       total_sales_returns_cash,
@@ -295,8 +552,45 @@ const get_dashboard = async (req, res) => {
       total_sales_returns_cheque,
       total_sales_returns_customer_paid,
       total_sales_returns_customer_payable,
+      //purchases
+      total_purchases,
+      total_purchases_discount,
+      total_purchases_delivery,
+      total_purchases_cash,
+      total_purchases_debit_card,
+      total_purchases_credit_card,
+      total_purchases_bank_transfer,
+      total_purchases_online_payment,
+      total_purchases_cheque,
+      total_supplier_paid,
+      total_supplier_payable,
+      //purchases returns
+      total_purchase_return,
+      total_purchase_return_discount,
+      total_purchase_return_delivery,
+      total_purchase_return_cash,
+      total_purchase_return_debit_card,
+      total_purchase_return_credit_card,
+      total_purchase_return_bank_transfer,
+      total_purchase_return_online_payment,
+      total_purchase_return_cheque,
+      total_purchase_return_supplier_paid,
+      total_purchase_return_supplier_payable,
+      //expenses
+      total_expenses,
+      total_expenses_cash,
+      total_expenses_debit_card,
+      total_expenses_credit_card,
+      total_expenses_bank_transfer,
+      total_expenses_online_payment,
+      total_expenses_return_cheque,
+      // grand total
+      grand_total,
+      //other
       recent_invoices,
       inventory_requestes,
+      //role
+      role: authorize?.role,
     };
 
     // Send response
@@ -317,13 +611,24 @@ const get_all_products_reports = async (req, res) => {
     const { search, sort, unit, category, brand, type, branch, status } =
       req?.body;
 
-    // Define the base filter for products
-    const branchObjectId = new mongoose.Types.ObjectId(
-      branch ? branch : authorize?.branch
-    );
+    let selected_branch = new mongoose.Types.ObjectId(authorize?.branch);
+
+    if (branch == "ALL") {
+      selected_branch = "ALL";
+    } else {
+      selected_branch = new mongoose.Types.ObjectId(
+        branch ? branch : authorize?.branch
+      );
+    }
+
+    const queryConditions = { ref: authorize.ref };
+    if (selected_branch !== "ALL") {
+      queryConditions.branch = selected_branch;
+    }
 
     const productList = {
-      branch: branchObjectId,
+      ...queryConditions,
+      // branch: branchObjectId,
       status: { $ne: 2 },
     };
 
@@ -363,7 +668,6 @@ const get_all_products_reports = async (req, res) => {
           ],
         },
       },
-
       {
         $addFields: {
           total_inventory: {
@@ -383,9 +687,7 @@ const get_all_products_reports = async (req, res) => {
           },
         },
       },
-
       { $sort: inventorySort },
-
       {
         $lookup: {
           from: "branches",
@@ -399,7 +701,6 @@ const get_all_products_reports = async (req, res) => {
           branch: { $arrayElemAt: ["$branch", 0] },
         },
       },
-
       {
         $lookup: {
           from: "product_units",
@@ -464,13 +765,24 @@ const get_all_products_low_reports = async (req, res) => {
     const { search, sort, unit, category, brand, type, status, branch } =
       req?.body;
 
-    // Define the base filter for products
-    const branchObjectId = new mongoose.Types.ObjectId(
-      branch ? branch : authorize?.branch
-    );
+    let selected_branch = new mongoose.Types.ObjectId(authorize?.branch);
+
+    if (branch == "ALL") {
+      selected_branch = "ALL";
+    } else {
+      selected_branch = new mongoose.Types.ObjectId(
+        branch ? branch : authorize?.branch
+      );
+    }
+
+    const queryConditions = { ref: authorize.ref };
+    if (selected_branch !== "ALL") {
+      queryConditions.branch = selected_branch;
+    }
 
     const productList = {
-      branch: branchObjectId,
+      ...queryConditions,
+      // branch: branchObjectId,
       status: { $ne: 2 },
     };
 
@@ -533,8 +845,9 @@ const get_all_products_low_reports = async (req, res) => {
 
       {
         $match: {
+          total_inventory: { $gt: 0 },
           $expr: {
-            $lt: ["$total_inventory", "$stock"],
+            $lte: ["$total_inventory", "$stock"],
           },
         },
       },
@@ -579,7 +892,6 @@ const get_all_products_low_reports = async (req, res) => {
           as: "brand",
         },
       },
-
       {
         $addFields: {
           unit: { $arrayElemAt: ["$unit", 0] },
@@ -619,13 +931,24 @@ const get_all_products_out_of_stock_reports = async (req, res) => {
     const { search, sort, unit, category, brand, type, status, branch } =
       req?.body;
 
-    // Define the base filter for products
-    const branchObjectId = new mongoose.Types.ObjectId(
-      branch ? branch : authorize?.branch
-    );
+    let selected_branch = new mongoose.Types.ObjectId(authorize?.branch);
+
+    if (branch == "ALL") {
+      selected_branch = "ALL";
+    } else {
+      selected_branch = new mongoose.Types.ObjectId(
+        branch ? branch : authorize?.branch
+      );
+    }
+
+    const queryConditions = { ref: authorize.ref };
+    if (selected_branch !== "ALL") {
+      queryConditions.branch = selected_branch;
+    }
 
     const productList = {
-      branch: branchObjectId,
+      ...queryConditions,
+      // branch: branchObjectId,
       status: { $ne: 2 },
     };
 
@@ -779,11 +1102,28 @@ const get_all_inventories_reports = async (req, res) => {
       status,
     } = req.body;
 
+    let selected_branch = new mongoose.Types.ObjectId(authorize?.branch);
+
+    if (branch == "ALL") {
+      selected_branch = "ALL";
+    } else {
+      selected_branch = new mongoose.Types.ObjectId(
+        branch ? branch : authorize?.branch
+      );
+    }
+
+    const queryConditions = { ref: authorize.ref };
+    if (selected_branch !== "ALL") {
+      queryConditions.branch = selected_branch;
+    }
+
     const inventoryList = {
-      branch: branch ? branch : authorize.branch,
+      ...queryConditions,
+      // branch: branch ? branch : authorize.branch,
       status: { $ne: 2 },
       stock: { $gt: 0 },
     };
+
     if (product) inventoryList.product = product;
     if (supplier) inventoryList.supplier = supplier;
     if (purchase) inventoryList.purchase = purchase;
@@ -797,8 +1137,17 @@ const get_all_inventories_reports = async (req, res) => {
     }
 
     let sortOption = { created: -1 };
-    if (sort === 0) sortOption = { stock: 1 };
-    else if (sort === 1) sortOption = { stock: -1 };
+
+    if (sort === 3) sortOption = { purchase_price: 1 };
+    else if (sort === 4) sortOption = { purchase_price: -1 };
+    else if (sort === 5) sortOption = { price_per_unit: 1 };
+    else if (sort === 6) sortOption = { price_per_unit: -1 };
+    else if (sort === 7) sortOption = { sale_price: 1 };
+    else if (sort === 8) sortOption = { sale_price: -1 };
+    else if (sort === 9) sortOption = { stock: 1 };
+    else if (sort === 10) sortOption = { stock: -1 };
+    else if (sort === 11) sortOption = { expiry_date: 1 };
+    else if (sort === 12) sortOption = { expiry_date: -1 };
 
     // Fetch product IDs matching the search query
     let productIds = [];
@@ -840,6 +1189,7 @@ const get_all_inventories_reports = async (req, res) => {
 
     // Calculate total, margin, and grand_total
     let grand_total = 0;
+    let grand_sale_total = 0;
     const inventoryData = all_inventories.map((inventory) => {
       const price_per_unit = parseFloat(inventory.price_per_unit) || 0;
       const stock = parseFloat(inventory.stock) || 0;
@@ -847,23 +1197,51 @@ const get_all_inventories_reports = async (req, res) => {
 
       // Calculate total
       const total = price_per_unit * stock;
+      const total_sales = sale_price * stock;
+
       grand_total += total;
+      grand_sale_total += total_sales;
 
       // Calculate margin
       const margin =
         sale_price > 0 ? ((sale_price - price_per_unit) / sale_price) * 100 : 0;
 
+      // Calculate gain
+      const gain = sale_price > 0 ? sale_price - price_per_unit : 0;
+
       return {
         ...inventory.toObject(),
-        total, // Add total key for each inventory
-        margin, // Add margin key for each inventory
+        total,
+        total_sales,
+        margin,
+        gain,
       };
     });
+
+    if (sort === 1) {
+      inventoryData.sort((a, b) =>
+        (a.product?.name || "").localeCompare(b.product?.name || "")
+      );
+    } else if (sort === 2) {
+      inventoryData.sort((a, b) =>
+        (b.product?.name || "").localeCompare(a.product?.name || "")
+      );
+    } else if (sort === 13) inventoryData.sort((a, b) => a.margin - b.margin);
+    else if (sort === 14) inventoryData.sort((a, b) => b.margin - a.margin);
+    else if (sort === 15) inventoryData.sort((a, b) => a.gain - b.gain);
+    else if (sort === 16) inventoryData.sort((a, b) => b.gain - a.gain);
+    else if (sort === 17) inventoryData.sort((a, b) => a.total - b.total);
+    else if (sort === 18) inventoryData.sort((a, b) => b.total - a.total);
+    else if (sort === 19)
+      inventoryData.sort((a, b) => a.total_sales - b.total_sales);
+    else if (sort === 20)
+      inventoryData.sort((a, b) => b.total_sales - a.total_sales);
 
     success_200(res, "", {
       totalCount: all_inventories.length,
       data: inventoryData,
-      grand_total, // Include grand_total
+      grand_total,
+      grand_sale_total,
     });
   } catch (error) {
     catch_400(res, error?.message);
@@ -879,10 +1257,11 @@ const get_all_inventories_near_expiry_reports = async (req, res) => {
     // const formattedDate = new Date(date).toISOString().split("T")[0];
 
     // Get all products
-    const all_products = await products.find(
-      { ref: authorize.ref, branch: authorize.branch, status: 1 }
-      // { _id: 1, stock: 1, expiry: 1 }
-    );
+    const all_products = await products.find({
+      ref: authorize.ref,
+      branch: authorize.branch,
+      status: 1,
+    });
 
     // Get all inventory data in a single query
     const productIds = all_products.map((p) => p._id);
@@ -916,10 +1295,11 @@ const get_all_inventories_near_expiry_reports = async (req, res) => {
 
             if (daysToExpiry > 0 && daysToExpiry <= product.expiry) {
               near_expiry_products.push({
-                product: product?._id,
+                ...inv?.toObject(),
+                // product: product?._id,
                 product_name: product?.name,
                 stock: inv.stock,
-                expiry: product?.expiry,
+                // expiry: product?.expiry,
                 expiry_date: inv.expiry_date,
                 days_to_expiry: daysToExpiry,
               });
@@ -1105,6 +1485,139 @@ const get_sales_reports = async (req, res) => {
   }
 };
 
+const get_sales_return_reports = async (req, res) => {
+  try {
+    const authorize = authorization(req);
+    if (!authorize) return unauthorized(res);
+
+    const { date, branch, customer } = req?.body;
+
+    let start, end;
+
+    if (date?.start && date?.end) {
+      // Parse provided dates
+      start = new Date(date.start);
+      end = new Date(date.end);
+    } else {
+      // If date is not provided, use today's date
+      start = new Date();
+      start.setHours(0, 0, 0, 0);
+
+      end = new Date();
+      end.setHours(23, 59, 59, 999);
+    }
+
+    // Validate if the dates are correct
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      return catch_400(res, "Invalid date format. Please provide valid dates.");
+    }
+
+    // Ensure start date is earlier than end date
+    if (start > end) {
+      [start, end] = [end, start];
+    }
+
+    // Build query conditions
+    const queryConditions = {
+      date: {
+        $gte: start,
+        $lt: new Date(end.setDate(end.getDate() + 1)), // Include full day
+      },
+      ref: authorize.ref,
+      branch: branch ? branch : authorize.branch,
+      status: 1,
+    };
+
+    // If customer is provided, filter by customer
+    if (customer) {
+      queryConditions.customer = customer;
+    }
+
+    // Get sales_returns for the specified date range and customer (if provided)
+    const all_sales_returns = await sales_returns
+      .find(queryConditions)
+      ?.populate("customer")
+      ?.populate("branch");
+
+    // Get related payments for the sales_returns
+    const sales_returnIds = all_sales_returns.map((i) => i._id);
+    const sales_return_payments = await sales_returns_payments.find({
+      sales_return: { $in: sales_returnIds },
+    });
+
+    const paymentMap = {};
+    sales_return_payments.forEach((p) => {
+      if (!paymentMap[p.sales_return]) paymentMap[p.sales_return] = [];
+      paymentMap[p.sales_return].push(p);
+    });
+
+    // Prepare a report for each sales_return
+    const sales_returnReports = all_sales_returns.map((sales_return) => {
+      let total_sales = parseFloat(sales_return.total) || 0;
+      let total_discount = parseFloat(sales_return.discount) || 0;
+      let total_delivery = parseFloat(sales_return.delivery) || 0;
+
+      let sales_return_paid = 0;
+      let total_cash = 0;
+      let total_debit_card = 0;
+      let total_credit_card = 0;
+      let total_bank_transfer = 0;
+      let total_online_payment = 0;
+      let total_cheque = 0;
+
+      (paymentMap[sales_return._id] || []).forEach((payment) => {
+        const amount = parseFloat(payment.amount) || 0;
+        sales_return_paid += amount;
+
+        switch (payment.name) {
+          case "Cash":
+            total_cash += amount;
+            break;
+          case "Debit card":
+            total_debit_card += amount;
+            break;
+          case "Credit card":
+            total_credit_card += amount;
+            break;
+          case "Bank transfer":
+            total_bank_transfer += amount;
+            break;
+          case "Online payment":
+            total_online_payment += amount;
+            break;
+          case "Cheque":
+            total_cheque += amount;
+            break;
+        }
+      });
+
+      const customer_paid = sales_return_paid;
+      const customer_payable = total_sales - sales_return_paid;
+
+      // Return a detailed sales_return report
+      return {
+        ...sales_return?.toObject(),
+        total_sales,
+        total_discount,
+        total_delivery,
+        total_cash,
+        total_debit_card,
+        total_credit_card,
+        total_bank_transfer,
+        total_online_payment,
+        total_cheque,
+        total_paid: customer_paid,
+        total_payable: customer_payable,
+      };
+    });
+
+    // Send response with sales_return-wise sales data
+    success_200(res, "", sales_returnReports);
+  } catch (error) {
+    catch_400(res, error.message);
+  }
+};
+
 const get_purchase_reports = async (req, res) => {
   try {
     const authorize = authorization(req);
@@ -1228,6 +1741,193 @@ const get_purchase_reports = async (req, res) => {
   }
 };
 
+const get_purchase_return_reports = async (req, res) => {
+  try {
+    const authorize = authorization(req);
+    if (!authorize) return unauthorized(res);
+
+    const { date, branch, supplier } = req?.body;
+
+    let start, end;
+
+    if (date?.start && date?.end) {
+      start = new Date(date.start);
+      end = new Date(date.end);
+    } else {
+      start = new Date();
+      start.setHours(0, 0, 0, 0);
+
+      end = new Date();
+      end.setHours(23, 59, 59, 999);
+    }
+
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      return catch_400(res, "Invalid date format. Please provide valid dates.");
+    }
+
+    if (start > end) {
+      [start, end] = [end, start];
+    }
+
+    const queryConditions = {
+      date: {
+        $gte: start,
+        $lt: new Date(end.setDate(end.getDate() + 1)), // Include full end day
+      },
+      ref: authorize.ref,
+      branch: branch || authorize.branch,
+      status: 1,
+    };
+
+    if (supplier) {
+      queryConditions.supplier = supplier;
+    }
+
+    const all_purchase_returns = await purchase_returns
+      .find(queryConditions)
+      .populate("supplier")
+      .populate("branch");
+
+    const purchaseOrderIds = all_purchase_returns.map((i) => i._id);
+    const purchase_return_payments = await purchase_returns_payments.find({
+      purchase: { $in: purchaseOrderIds },
+    });
+
+    const paymentMap = {};
+    purchase_return_payments.forEach((p) => {
+      if (!paymentMap[p.purchase]) paymentMap[p.purchase] = [];
+      paymentMap[p.purchase].push(p);
+    });
+
+    const purchaseOrderReports = all_purchase_returns.map((purchase_return) => {
+      let total_purchase = parseFloat(purchase_return.total) || 0;
+      let total_discount = parseFloat(purchase_return.discount) || 0;
+      let total_delivery = parseFloat(purchase_return.delivery) || 0;
+
+      let purchase_return_paid = 0;
+      let total_cash = 0;
+      let total_debit_card = 0;
+      let total_credit_card = 0;
+      let total_bank_transfer = 0;
+      let total_online_payment = 0;
+      let total_cheque = 0;
+
+      (paymentMap[purchase_return._id] || []).forEach((payment) => {
+        const amount = parseFloat(payment.amount) || 0;
+        purchase_return_paid += amount;
+
+        switch (
+          payment.name // Ensure this field is consistent with sales reports
+        ) {
+          case "Cash":
+            total_cash += amount;
+            break;
+          case "Debit card":
+            total_debit_card += amount;
+            break;
+          case "Credit card":
+            total_credit_card += amount;
+            break;
+          case "Bank transfer":
+            total_bank_transfer += amount;
+            break;
+          case "Online payment":
+            total_online_payment += amount;
+            break;
+          case "Cheque":
+            total_cheque += amount;
+            break;
+        }
+      });
+
+      const supplier_payable = total_purchase - purchase_return_paid;
+
+      return {
+        ...purchase_return.toObject(),
+        total_purchase,
+        total_discount,
+        total_delivery,
+        total_cash,
+        total_debit_card,
+        total_credit_card,
+        total_bank_transfer,
+        total_online_payment,
+        total_cheque,
+        total_paid: purchase_return_paid,
+        total_payable: supplier_payable,
+      };
+    });
+
+    success_200(res, "", purchaseOrderReports);
+  } catch (error) {
+    catch_400(res, error.message);
+  }
+};
+
+const get_fast_moving_products_reports = async (req, res) => {
+  try {
+    const authorize = authorization(req);
+    if (!authorize) return unauthorized(res);
+
+    const { date, branch, supplier } = req?.body;
+
+    let selected_branch = new mongoose.Types.ObjectId(authorize?.branch);
+
+    if (branch == "ALL") {
+      selected_branch = "ALL";
+    } else {
+      selected_branch = new mongoose.Types.ObjectId(
+        branch || authorize?.branch
+      );
+    }
+
+    const queryConditions = { ref: authorize.ref };
+    if (selected_branch !== "ALL") {
+      queryConditions.branch = selected_branch;
+    }
+
+    // Fetch all invoice details and populate description and product
+    const get_all_invoice_details = await invoices_details
+      .find({ ...queryConditions, status: 1 })
+      .populate({
+        path: "description",
+        populate: { path: "product", select: "name" }, // Populate product name
+      });
+
+    let productSales = new Map(); // Store total sales per product
+    let grandTotalSold = 0; // Store grand total of all sold products
+
+    for (const invoice of get_all_invoice_details) {
+      const productName = invoice.description?.product?.name; // Extract product name
+      if (!productName) continue;
+
+      if (!productSales.has(productName)) {
+        productSales.set(productName, {
+          productName: productName, // Store product name instead of ID
+          totalSold: 0,
+          totalInvoices: 0,
+        });
+      }
+
+      let productData = productSales.get(productName);
+      productData.totalSold += invoice.quantity || 0; // Sum quantity
+      productData.totalInvoices += 1; // Count occurrences
+
+      grandTotalSold += invoice.quantity || 0; // Sum for grand total
+    }
+
+    // Convert map to an array
+    let sortedProducts = [...productSales.values()].sort(
+      (a, b) => b.totalSold - a.totalSold
+    );
+
+    // Send response with grand total
+    success_200(res, "", { grandTotalSold, data: sortedProducts });
+  } catch (error) {
+    catch_400(res, error.message);
+  }
+};
+
 module.exports = {
   get_dashboard,
   get_all_products_reports,
@@ -1238,4 +1938,7 @@ module.exports = {
   get_all_inventories_expired_reports,
   get_sales_reports,
   get_purchase_reports,
+  get_sales_return_reports,
+  get_purchase_return_reports,
+  get_fast_moving_products_reports,
 };

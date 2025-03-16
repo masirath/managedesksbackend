@@ -264,16 +264,6 @@ const create_sales_return = async (req, res) => {
                   stock =
                     parseFloat(selected_inventory?.stock || 0) +
                     parseFloat(value?.delivered || 0);
-                  // if (
-                  //   parseFloat(value?.delivered || 0) <=
-                  //   parseFloat(selected_inventory?.stock || 0)
-                  // ) {
-                  //   stock =
-                  //     parseFloat(selected_inventory?.stock || 0) -
-                  //     parseFloat(value?.delivered || 0);
-                  // } else {
-                  //   stock = 0;
-                  // }
 
                   inventory_stock = stock;
                 } else {
@@ -287,15 +277,6 @@ const create_sales_return = async (req, res) => {
 
                   stock =
                     parseFloat(stock || 0) + parseFloat(total_unit_stock || 0);
-                  // if (
-                  //   parseFloat(total_unit_stock || 0) <= parseFloat(stock || 0)
-                  // ) {
-                  //   stock =
-                  //     parseFloat(stock || 0) -
-                  //     parseFloat(total_unit_stock || 0);
-                  // } else {
-                  //   stock = 0;
-                  // }
 
                   inventory_stock = stock;
                 }
@@ -336,6 +317,7 @@ const create_sales_return = async (req, res) => {
                 if (selected_inventories_units_details?.length > 0) {
                   for (v of selected_inventories_units_details) {
                     if (v?._id == value?.unit) {
+                      //sub units
                       let selected_inventory_unit_detail =
                         await inventories_units_details?.findById(v?._id);
 
@@ -347,22 +329,13 @@ const create_sales_return = async (req, res) => {
                         unit_stock =
                           parseFloat(unit_stock || 0) +
                           parseFloat(value?.delivered || 0);
-                        // if (
-                        //   parseFloat(value?.delivered || 0) <=
-                        //   parseFloat(unit_stock || 0)
-                        // ) {
-                        //   unit_stock =
-                        //     parseFloat(unit_stock || 0) -
-                        //     parseFloat(value?.delivered || 0);
-                        // } else {
-                        //   unit_stock = 0;
-                        // }
 
                         selected_inventory_unit_detail.stock = unit_stock;
                         const selected_inventory_unit_detail_save =
                           await selected_inventory_unit_detail?.save();
                       }
                     } else {
+                      //main unit
                       let selected_inventory_unit_detail =
                         await inventories_units_details?.findById(v?._id);
 
@@ -379,16 +352,6 @@ const create_sales_return = async (req, res) => {
                       unit_stock =
                         parseFloat(unit_stock || 0) +
                         parseFloat(total_unit_stock);
-                      // if (
-                      //   parseFloat(total_unit_stock || 0) <=
-                      //   parseFloat(unit_stock || 0)
-                      // ) {
-                      //   unit_stock =
-                      //     parseFloat(unit_stock || 0) -
-                      //     parseFloat(total_unit_stock);
-                      // } else {
-                      //   unit_stock = 0;
-                      // }
 
                       selected_inventory_unit_detail.stock = unit_stock;
 
@@ -449,21 +412,17 @@ const create_sales_return = async (req, res) => {
                 : 0;
               let data_delivery_date = delivery_date ? delivery_date : "";
 
-              if (parseFloat(data_delivery_status) == 2) {
-                if (
-                  parseFloat(delivery_count) == sales_return_details?.length
-                ) {
-                  data_delivery_status = 2;
-                } else if (
-                  parseFloat(delivery_count) > 0 &&
-                  parseFloat(delivery_count) < sales_return_details?.length
-                ) {
-                  data_delivery_status = 1;
-                  data_delivery_date = "";
-                } else {
-                  data_delivery_status = 0;
-                  data_delivery_date = "";
-                }
+              if (parseFloat(delivery_count) == details?.length) {
+                data_delivery_status = 2;
+              } else if (
+                parseFloat(delivery_count) > 0 &&
+                parseFloat(delivery_count) < details?.length
+              ) {
+                data_delivery_status = 1;
+                data_delivery_date = "";
+              } else {
+                data_delivery_status = 0;
+                data_delivery_date = "";
               }
 
               //grand total
@@ -514,18 +473,20 @@ const create_sales_return = async (req, res) => {
               let data_payment_status = payment_status
                 ? parseFloat(payment_status || 0)
                 : 0;
-              if (parseFloat(data_payment_status) == 2) {
-                if (parseFloat(sales_return_paid) == parseFloat(grand_total)) {
-                  data_payment_status = 2;
-                } else if (
-                  parseFloat(sales_return_paid) > 0 &&
-                  parseFloat(sales_return_paid) < parseFloat(grand_total)
-                ) {
-                  data_payment_status = 1;
-                } else {
-                  sales_return_payment_details = [];
-                  data_payment_status = 0;
-                }
+              if (
+                parseFloat(sales_return_paid?.toFixed(3) || 0) ==
+                parseFloat(grand_total?.toFixed(3) || 0)
+              ) {
+                data_payment_status = 2;
+              } else if (
+                parseFloat(sales_return_paid?.toFixed(3) || 0) > 0 &&
+                parseFloat(sales_return_paid?.toFixed(3) || 0) <
+                  parseFloat(grand_total?.toFixed(3) || 0)
+              ) {
+                data_payment_status = 1;
+              } else {
+                sales_return_payment_details = [];
+                data_payment_status = 0;
               }
 
               //order payment
@@ -630,6 +591,7 @@ const update_sales_return = async (req, res) => {
           failed_400(res, "Sales return Order not found");
         } else {
           const selected_sales_return_number = await sales_returns?.findOne({
+            _id: { $ne: id },
             number: assigned_number,
             branch: branch ? branch : authorize?.branch,
           });
@@ -756,22 +718,18 @@ const update_sales_return = async (req, res) => {
                   //inventories create (stock calculation)
                   let inventory_stock = 0;
                   if (selected_inventory?._id == value?.unit) {
-                    //if main unit
                     let stock = parseFloat(selected_inventory?.stock || 0);
 
                     let previous_stock =
                       selected_sales_returns_details?.delivered;
 
-                    if (
-                      parseFloat(value?.delivered || 0) <=
-                      parseFloat(selected_inventory?.stock || 0)
-                    ) {
-                      stock =
-                        parseFloat(selected_inventory?.stock || 0) -
-                        parseFloat(value?.delivered || 0);
-                    } else {
-                      stock = 0;
-                    }
+                    let current_stock =
+                      parseFloat(value?.delivered || 0) -
+                      parseFloat(previous_stock || 0);
+
+                    stock =
+                      parseFloat(selected_inventory?.stock || 0) +
+                      parseFloat(current_stock || 0);
 
                     inventory_stock = stock;
                   } else {
@@ -783,18 +741,17 @@ const update_sales_return = async (req, res) => {
                     let total_unit_stock =
                       parseFloat(delivered || 0) / parseFloat(conversion || 0);
 
-                    console.log(total_unit_stock, stock);
+                    let previous_stock =
+                      parseFloat(
+                        selected_sales_returns_details?.delivered || 0
+                      ) / parseFloat(conversion || 0);
 
-                    if (
-                      parseFloat(total_unit_stock || 0) <=
-                      parseFloat(stock || 0)
-                    ) {
-                      stock =
-                        parseFloat(stock || 0) -
-                        parseFloat(total_unit_stock || 0);
-                    } else {
-                      stock = 0;
-                    }
+                    let current_stock =
+                      parseFloat(total_unit_stock || 0) -
+                      parseFloat(previous_stock || 0);
+
+                    stock =
+                      parseFloat(stock || 0) + parseFloat(current_stock || 0);
 
                     inventory_stock = stock;
                   }
@@ -804,41 +761,11 @@ const update_sales_return = async (req, res) => {
                     await selected_inventory?.save();
 
                   if (selected_sales_returns_details) {
-                    //update sales_return details
-                    selected_sales_returns_details.name =
-                      selected_inventory?.product?.name;
-                    selected_sales_returns_details.unit = sales_return_unit;
-                    selected_sales_returns_details.unit_name =
-                      sales_return_unit_name;
-                    selected_sales_returns_details.sale_price =
-                      sales_return_sale_price;
-                    selected_sales_returns_details.purchase_price =
-                      sales_return_purchase_price;
-                    selected_sales_returns_details.conversion =
-                      sales_return_conversion;
-                    selected_sales_returns_details.quantity =
-                      sales_return_quantity;
-                    selected_sales_returns_details.delivered =
-                      sales_return_delivered;
-                    selected_sales_returns_details.free = sales_return_free;
-                    selected_sales_returns_details.tax = sales_return_tax;
-                    selected_sales_returns_details.barcode =
-                      sales_return_barcode;
-                    selected_sales_returns_details.price_per_unit =
-                      sales_return_price_per_unit;
-                    selected_sales_returns_details.expiry_date =
-                      sales_return_expiry_date;
-                    selected_sales_returns_details.tax_amount = tax_amount;
-                    selected_sales_returns_details.total = total;
-                    selected_sales_returns_details.status = status ? status : 0;
-
-                    const selected_sales_returns_details_save =
-                      await selected_sales_returns_details?.save();
-
                     //inventory units details
                     if (selected_inventories_units_details?.length > 0) {
                       for (v of selected_inventories_units_details) {
                         if (v?._id == value?.unit) {
+                          //inventory unit stock calculation for (sub unit)
                           let selected_inventory_unit_detail =
                             await inventories_units_details?.findById(v?._id);
 
@@ -847,28 +774,36 @@ const update_sales_return = async (req, res) => {
                               selected_inventory_unit_detail?.stock || 0
                             );
 
-                            if (
-                              parseFloat(value?.delivered || 0) <=
-                              parseFloat(unit_stock || 0)
-                            ) {
-                              unit_stock =
-                                parseFloat(unit_stock || 0) -
-                                parseFloat(value?.delivered || 0);
-                            } else {
-                              unit_stock = 0;
-                            }
+                            let previous_stock =
+                              selected_inventory_unit_detail?.delivered;
+
+                            let current_stock =
+                              parseFloat(value?.delivered || 0) -
+                              parseFloat(previous_stock || 0);
+
+                            unit_stock =
+                              parseFloat(unit_stock || 0) +
+                              parseFloat(current_stock || 0);
 
                             selected_inventory_unit_detail.stock = unit_stock;
                             const selected_inventory_unit_detail_save =
                               await selected_inventory_unit_detail?.save();
                           }
                         } else {
+                          //inventory unit stock calculation for (main unit)
                           let selected_inventory_unit_detail =
                             await inventories_units_details?.findById(v?._id);
+
+                          const selected_sales_returns_units_detail =
+                            await sales_returns_units_details?.findOne({
+                              inventory_unit:
+                                selected_inventory_unit_detail?._id,
+                            });
 
                           let unit_stock = parseFloat(
                             selected_inventory_unit_detail?.stock || 0
                           );
+
                           let delivered = parseFloat(value?.delivered || 0);
                           let conversion = parseFloat(v?.conversion || 0);
 
@@ -876,16 +811,16 @@ const update_sales_return = async (req, res) => {
                             parseFloat(delivered || 0) *
                             parseFloat(conversion || 0);
 
-                          if (
-                            parseFloat(total_unit_stock || 0) <=
-                            parseFloat(unit_stock || 0)
-                          ) {
-                            unit_stock =
-                              parseFloat(unit_stock || 0) -
-                              parseFloat(total_unit_stock);
-                          } else {
-                            unit_stock = 0;
-                          }
+                          let previous_stock =
+                            selected_sales_returns_units_detail?.unit_delivered;
+
+                          let current_stock =
+                            parseFloat(total_unit_stock || 0) -
+                            parseFloat(previous_stock || 0);
+
+                          unit_stock =
+                            parseFloat(unit_stock || 0) +
+                            parseFloat(current_stock || 0);
 
                           selected_inventory_unit_detail.stock = unit_stock;
 
@@ -920,11 +855,42 @@ const update_sales_return = async (req, res) => {
                             ? status
                             : 0;
 
-                          const sales_return_unit_detail_save =
-                            sales_return_unit_detail?.save();
+                          const selected_sales_returns_units_details_save =
+                            selected_sales_returns_units_details?.save();
                         }
                       }
                     }
+
+                    //update sales_return details
+                    selected_sales_returns_details.name =
+                      selected_inventory?.product?.name;
+                    selected_sales_returns_details.unit = sales_return_unit;
+                    selected_sales_returns_details.unit_name =
+                      sales_return_unit_name;
+                    selected_sales_returns_details.sale_price =
+                      sales_return_sale_price;
+                    selected_sales_returns_details.purchase_price =
+                      sales_return_purchase_price;
+                    selected_sales_returns_details.conversion =
+                      sales_return_conversion;
+                    selected_sales_returns_details.quantity =
+                      sales_return_quantity;
+                    selected_sales_returns_details.delivered =
+                      sales_return_delivered;
+                    selected_sales_returns_details.free = sales_return_free;
+                    selected_sales_returns_details.tax = sales_return_tax;
+                    selected_sales_returns_details.barcode =
+                      sales_return_barcode;
+                    selected_sales_returns_details.price_per_unit =
+                      sales_return_price_per_unit;
+                    selected_sales_returns_details.expiry_date =
+                      sales_return_expiry_date;
+                    selected_sales_returns_details.tax_amount = tax_amount;
+                    selected_sales_returns_details.total = total;
+                    selected_sales_returns_details.status = status ? status : 0;
+
+                    const selected_sales_returns_details_save =
+                      await selected_sales_returns_details?.save();
                   } else {
                     //create sales_return details
                     const sales_return_detail = new sales_returns_details({
@@ -966,16 +932,11 @@ const update_sales_return = async (req, res) => {
                               selected_inventory_unit_detail?.stock || 0
                             );
 
-                            if (
-                              parseFloat(value?.delivered || 0) <=
-                              parseFloat(unit_stock || 0)
-                            ) {
-                              unit_stock =
-                                parseFloat(unit_stock || 0) -
-                                parseFloat(value?.delivered || 0);
-                            } else {
-                              unit_stock = 0;
-                            }
+                            unit_stock =
+                              parseFloat(unit_stock || 0) +
+                              parseFloat(value?.delivered || 0);
+                          } else {
+                            unit_stock = 0;
 
                             selected_inventory_unit_detail.stock = unit_stock;
                             const selected_inventory_unit_detail_save =
@@ -995,16 +956,9 @@ const update_sales_return = async (req, res) => {
                             parseFloat(delivered || 0) *
                             parseFloat(conversion || 0);
 
-                          if (
-                            parseFloat(total_unit_stock || 0) <=
-                            parseFloat(unit_stock || 0)
-                          ) {
-                            unit_stock =
-                              parseFloat(unit_stock || 0) -
-                              parseFloat(total_unit_stock);
-                          } else {
-                            unit_stock = 0;
-                          }
+                          unit_stock =
+                            parseFloat(unit_stock || 0) +
+                            parseFloat(total_unit_stock);
 
                           selected_inventory_unit_detail.stock = unit_stock;
 
@@ -1056,32 +1010,26 @@ const update_sales_return = async (req, res) => {
             }
 
             if (count == details?.length) {
-              const selected_sales_return = await sales_returns?.findById(
-                sales_return_save?._id
-              );
-
               if (selected_sales_return) {
                 //delivery status
                 let data_delivery_status = delivery_status
                   ? parseFloat(delivery_status || 0)
                   : 0;
-                let data_delivery_date = delivery_date ? delivery_date : "";
+                let data_delivery_date = delivery_date
+                  ? delivery_date
+                  : new Date();
 
-                if (parseFloat(data_delivery_status) == 2) {
-                  if (
-                    parseFloat(delivery_count) == sales_return_details?.length
-                  ) {
-                    data_delivery_status = 2;
-                  } else if (
-                    parseFloat(delivery_count) > 0 &&
-                    parseFloat(delivery_count) < sales_return_details?.length
-                  ) {
-                    data_delivery_status = 1;
-                    data_delivery_date = "";
-                  } else {
-                    data_delivery_status = 0;
-                    data_delivery_date = "";
-                  }
+                if (parseFloat(delivery_count) == details?.length) {
+                  data_delivery_status = 2;
+                } else if (
+                  parseFloat(delivery_count) > 0 &&
+                  parseFloat(delivery_count) < details?.length
+                ) {
+                  data_delivery_status = 1;
+                  data_delivery_date = "";
+                } else {
+                  data_delivery_status = 0;
+                  data_delivery_date = "";
                 }
 
                 //grand total
@@ -1100,6 +1048,11 @@ const update_sales_return = async (req, res) => {
                   parseFloat(sales_return_discount);
 
                 //payment status
+                const delete_sales_returns_payments =
+                  await sales_returns_payments?.deleteMany({
+                    sales_return: id,
+                  });
+
                 let sales_return_payment_types = payment_types
                   ? JSON?.parse(payment_types)
                   : "";
@@ -1136,27 +1089,27 @@ const update_sales_return = async (req, res) => {
                 let data_payment_status = payment_status
                   ? parseFloat(payment_status || 0)
                   : 0;
-                if (parseFloat(data_payment_status) == 2) {
-                  if (
-                    parseFloat(sales_return_paid) == parseFloat(grand_total)
-                  ) {
-                    data_payment_status = 2;
-                  } else if (
-                    parseFloat(sales_return_paid) > 0 &&
-                    parseFloat(sales_return_paid) < parseFloat(grand_total)
-                  ) {
-                    data_payment_status = 1;
-                  } else {
-                    sales_return_payment_details = [];
-                    data_payment_status = 0;
-                  }
+
+                if (
+                  parseFloat(sales_return_paid?.toFixed(3) || 0) ==
+                  parseFloat(grand_total?.toFixed(3) || 0)
+                ) {
+                  data_payment_status = 2;
+                } else if (
+                  parseFloat(sales_return_paid) > 0 &&
+                  parseFloat(sales_return_paid) < parseFloat(grand_total)
+                ) {
+                  data_payment_status = 1;
+                } else {
+                  sales_return_payment_details = [];
+                  data_payment_status = 0;
                 }
 
                 //order payment
                 if (sales_return_payment_details?.length > 0) {
                   for (value of sales_return_payment_details) {
                     const sales_return_payment = await sales_returns_payments({
-                      sales_return: sales_return_save?._id,
+                      sales_return: selected_sales_return?._id,
                       name: value?.name,
                       amount: value?.amount,
                       status: status ? status : 0,
@@ -1374,16 +1327,28 @@ const get_all_sales_returns = async (req, res) => {
     if (status == 0) sales_returnsList.status = status;
 
     if (date?.start && date?.end) {
+      let startDate = new Date(date.start);
+      startDate.setHours(0, 0, 0, 0);
+
+      let endDate = new Date(date.end);
+      endDate.setHours(23, 59, 59, 999);
+
       sales_returnsList.date = {
-        $gte: new Date(date?.start),
-        $lte: new Date(date?.end),
+        $gte: startDate,
+        $lte: endDate,
       };
     }
 
     if (due_date?.start && due_date?.end) {
+      let startDate = new Date(due_date.start);
+      startDate.setHours(0, 0, 0, 0);
+
+      let endDate = new Date(due_date.end);
+      endDate.setHours(23, 59, 59, 999);
+
       sales_returnsList.due_date = {
-        $gte: new Date(due_date?.start),
-        $lte: new Date(due_date?.end),
+        $gte: startDate,
+        $lte: endDate,
       };
     }
 

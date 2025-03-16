@@ -18,6 +18,10 @@ const expenses_log_schema = mongoose.Schema({
     required: false,
     type: String,
   },
+  payment: {
+    required: true,
+    type: String,
+  },
   amount: {
     required: true,
     type: Number,

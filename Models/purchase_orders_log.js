@@ -9,6 +9,10 @@ const purchase_orders_log_schema = mongoose.Schema({
     required: true,
     type: String,
   },
+  invoice: {
+    required: false,
+    type: String,
+  },
   supplier: {
     required: true,
     type: String,

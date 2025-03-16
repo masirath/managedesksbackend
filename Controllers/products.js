@@ -528,6 +528,49 @@ const get_product = async (req, res) => {
   }
 };
 
+const get_product_name = async (req, res) => {
+  try {
+    const authorize = authorization(req);
+
+    if (authorize) {
+      const { name, branch } = req?.body;
+
+      if (!name || !branch) {
+        incomplete_400(res);
+      } else {
+        const selected_product = await products?.findOne({
+          name: name,
+          branch: branch,
+          status: 1,
+        });
+        // ?.populate({ path: "unit", match: { status: 1 } })
+        // ?.populate({ path: "category", match: { status: 1 } })
+        // ?.populate({ path: "brand", match: { status: 1 } });
+
+        if (!selected_product || selected_product?.status == 2) {
+          failed_400(res, "Product not found in branch");
+        } else {
+          const product = selected_product?.toObject();
+          const product_unit_details = await product_units_details
+            ?.find({
+              product: selected_product?._id,
+            })
+            ?.populate("name");
+
+          success_200(res, "", {
+            ...product,
+            product_units_details: product_unit_details,
+          });
+        }
+      }
+    } else {
+      unauthorized(res);
+    }
+  } catch (errors) {
+    catch_400(res, errors?.message);
+  }
+};
+
 const get_all_products = async (req, res) => {
   try {
     const authorize = authorization(req);
@@ -541,28 +584,19 @@ const get_all_products = async (req, res) => {
     const page_number = Number(page) || 1;
     const page_limit = Number(limit) || 10;
 
-    // Define the base filter for products
     const branchObjectId = new mongoose.Types.ObjectId(authorize?.branch);
-
     const productList = {
       branch: branchObjectId,
       status: { $ne: 2 },
+      ref: authorize?.ref,
     };
 
     if (search) {
-      // Trim the search term to handle any leading/trailing spaces
-      const searchTerm = search.trim().toLowerCase();
-
       productList.$or = [
-        {
-          name: {
-            $regex: searchTerm,
-            $options: "i", // Case-insensitive search for name
-          },
-        },
-        {
-          barcode: searchTerm, // Exact match for the barcode
-        },
+        // { name: { $regex: search, $options: "i" } },
+        { name: { $regex: `^${search}`, $options: "i" } },
+        // { name: { $regex: search, $options: "i" } },
+        { barcode: search },
       ];
     }
 
@@ -572,109 +606,91 @@ const get_all_products = async (req, res) => {
     if (type != null) productList.type = type;
     if (status != null) productList.status = status;
 
-    // Sort based on inventory or name
     const inventorySort =
       sort === 2
-        ? { total_inventory: 1 } // Low to high
+        ? { total_inventory: 1 }
         : sort === 3
-        ? { total_inventory: -1 } // High to low
-        : { name: 1 }; // Default sort by name
+        ? { total_inventory: -1 }
+        : { name: 1 };
 
-    // Aggregation pipeline
-    const pipeline = [
-      { $match: productList },
+    // Fetch paginated products first
+    const initialProducts = await products
+      .aggregate([
+        { $match: productList },
+        { $sort: inventorySort },
+        { $skip: (page_number - 1) * page_limit },
+        { $limit: page_limit },
+      ])
+      .exec();
 
-      // Lookup inventories with status = 1
-      {
-        $lookup: {
-          from: "inventories",
-          localField: "_id",
-          foreignField: "product",
-          as: "product_inventories",
-          pipeline: [{ $match: { status: 1 } }],
+    const productIds = initialProducts.map((p) => p._id);
+
+    // Fetch inventory for these products
+    const finalProducts = await products
+      .aggregate([
+        { $match: { _id: { $in: productIds } } },
+        {
+          $lookup: {
+            from: "inventories",
+            localField: "_id",
+            foreignField: "product",
+            as: "product_inventories",
+            pipeline: [{ $match: { status: 1 } }],
+          },
         },
-      },
-
-      // Total inventory calculation
-      {
-        $addFields: {
-          total_inventory: {
-            $sum: {
-              $map: {
-                input: "$product_inventories",
-                as: "inventory",
-                in: {
-                  $cond: {
-                    if: { $gt: [{ $ifNull: ["$$inventory.stock", 0] }, 0] },
-                    then: "$$inventory.stock",
-                    else: 0,
-                  },
-                },
-              },
+        {
+          $addFields: {
+            total_inventory: {
+              $sum: "$product_inventories.stock",
             },
           },
         },
-      },
-
-      // Sort the data
-      { $sort: inventorySort },
-
-      // Pagination
-      { $skip: (page_number - 1) * page_limit },
-      { $limit: page_limit },
-
-      // Lookup additional fields inline
-      {
-        $lookup: {
-          from: "product_units",
-          localField: "unit",
-          foreignField: "_id",
-          as: "unit",
+        {
+          $lookup: {
+            from: "product_units",
+            localField: "unit",
+            foreignField: "_id",
+            as: "unit",
+          },
         },
-      },
-      {
-        $lookup: {
-          from: "product_categories",
-          localField: "category",
-          foreignField: "_id",
-          as: "category",
+        {
+          $lookup: {
+            from: "product_categories",
+            localField: "category",
+            foreignField: "_id",
+            as: "category",
+          },
         },
-      },
-      {
-        $lookup: {
-          from: "product_brands",
-          localField: "brand",
-          foreignField: "_id",
-          as: "brand",
+        {
+          $lookup: {
+            from: "product_brands",
+            localField: "brand",
+            foreignField: "_id",
+            as: "brand",
+          },
         },
-      },
-
-      // Format lookup results (return single object instead of arrays)
-      {
-        $addFields: {
-          unit: { $arrayElemAt: ["$unit", 0] },
-          category: { $arrayElemAt: ["$category", 0] },
-          brand: { $arrayElemAt: ["$brand", 0] },
+        {
+          $addFields: {
+            unit: { $arrayElemAt: ["$unit", 0] },
+            category: { $arrayElemAt: ["$category", 0] },
+            brand: { $arrayElemAt: ["$brand", 0] },
+          },
         },
-      },
-    ];
+      ])
+      .exec();
 
-    // Count total products (parallel query for performance)
-    const totalCountPipeline = [{ $match: productList }, { $count: "total" }];
-
-    const [results, totalCountResult] = await Promise.all([
-      products.aggregate(pipeline).exec(),
-      products.aggregate(totalCountPipeline).exec(),
-    ]);
+    // Count total products
+    const totalCountResult = await products
+      .aggregate([{ $match: productList }, { $count: "total" }])
+      .exec();
 
     const totalCount = totalCountResult[0]?.total || 0;
 
-    // Send response
     success_200(res, "", {
       currentPage: page_number,
       totalPages: Math.ceil(totalCount / page_limit),
       totalCount,
-      data: results,
+      data: finalProducts,
     });
   } catch (errors) {
     catch_400(res, errors?.message);
@@ -793,6 +809,7 @@ module.exports = {
   update_product,
   delete_product,
   get_product,
+  get_product_name,
   get_all_products,
   get_product_log,
   get_all_products_log,
