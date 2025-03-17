@@ -92,6 +92,7 @@ const create_purchase_order = async (req, res) => {
       const {
         supplier,
         number,
+        invoice,
         date,
         due_date,
         details,
@@ -131,6 +132,7 @@ const create_purchase_order = async (req, res) => {
           const purchase_order = new purchase_orders({
             supplier: supplier,
             number: assigned_number,
+            invoice: invoice,
             date: date,
             due_date: due_date,
             subtotal: 0,
@@ -234,6 +236,10 @@ const create_purchase_order = async (req, res) => {
                           name: selected_product_units_detail?.name?.name,
                           quantity: selected_product_units_detail?.quantity
                             ? selected_product_units_detail?.quantity
+                            : 0,
+                          purchase_price: purchase_price
+                            ? parseFloat(purchase_price) /
+                              parseFloat(v?.conversion)
                             : 0,
                           price_per_unit: purchase_price_per_unit
                             ? parseFloat(purchase_price_per_unit) /
@@ -470,22 +476,24 @@ const create_purchase_order = async (req, res) => {
                 let data_delivery_status = delivery_status
                   ? parseFloat(delivery_status || 0)
                   : 0;
-                let data_delivery_date = delivery_date ? delivery_date : "";
+                let data_delivery_date = delivery_date
+                  ? delivery_date
+                  : new Date();
 
-                if (parseFloat(data_delivery_status) == 2) {
-                  if (parseFloat(delivery_count) == details?.length) {
-                    data_delivery_status = 2;
-                  } else if (
-                    parseFloat(delivery_count) > 0 &&
-                    parseFloat(delivery_count) < details?.length
-                  ) {
-                    data_delivery_status = 1;
-                    data_delivery_date = "";
-                  } else {
-                    data_delivery_status = 0;
-                    data_delivery_date = "";
-                  }
+                // if (parseFloat(data_delivery_status) == 2) {
+                if (parseFloat(delivery_count) == details?.length) {
+                  data_delivery_status = 2;
+                } else if (
+                  parseFloat(delivery_count) > 0 &&
+                  parseFloat(delivery_count) < details?.length
+                ) {
+                  data_delivery_status = 1;
+                  data_delivery_date = "";
+                } else {
+                  data_delivery_status = 0;
+                  data_delivery_date = "";
                 }
+                // }
 
                 //grand total
                 let purchase_discount = 0;
@@ -534,19 +542,19 @@ const create_purchase_order = async (req, res) => {
                 let data_payment_status = payment_status
                   ? parseFloat(payment_status || 0)
                   : 0;
-                if (parseFloat(data_payment_status) == 2) {
-                  if (parseFloat(purchase_paid) == parseFloat(grand_total)) {
-                    data_payment_status = 2;
-                  } else if (
-                    parseFloat(purchase_paid) > 0 &&
-                    parseFloat(purchase_paid) < parseFloat(grand_total)
-                  ) {
-                    data_payment_status = 1;
-                  } else {
-                    purchase_order_payment_details = [];
-                    data_payment_status = 0;
-                  }
+                // if (parseFloat(data_payment_status) == 2) {
+                if (parseFloat(purchase_paid) == parseFloat(grand_total)) {
+                  data_payment_status = 2;
+                } else if (
+                  parseFloat(purchase_paid) > 0 &&
+                  parseFloat(purchase_paid) < parseFloat(grand_total)
+                ) {
+                  data_payment_status = 1;
+                } else {
+                  purchase_order_payment_details = [];
+                  data_payment_status = 0;
                 }
+                // }
 
                 //purchase order payment create
                 if (purchase_order_payment_details?.length > 0) {
@@ -663,7 +671,7 @@ const calculateDetails = (detail, product, productUnitsDetails) => {
     subtotal: price,
     taxAmount,
     total,
-    isFullyDelivered: parseFloat(delivered) >= totalQuantity,
+    isFullyDelivered: parseFloat(delivered) == totalQuantity,
     isMainUnit,
     unitDetails: unitDetails,
   };
@@ -684,6 +692,7 @@ const update_purchase_order = async (req, res) => {
       id,
       supplier,
       number,
+      invoice,
       date,
       due_date,
       details,
@@ -779,6 +788,7 @@ const update_purchase_order = async (req, res) => {
         const selected_purchase_order_details =
           await purchase_orders_details?.findOne({
             inventory: detail?.inventory,
+            purchase: purchaseOrder?._id,
           });
 
         const selected_inventory = await inventories?.findById(
@@ -1082,7 +1092,11 @@ const update_purchase_order = async (req, res) => {
 
     //delivery status check
     const deliveryStatus =
-      deliveryCount === details.length ? 2 : deliveryCount > 0 ? 1 : 0;
+      deliveryCount == details.length ? 2 : deliveryCount > 0 ? 1 : 0;
+
+    const purchase_payments_delete = await purchase_orders_payments?.deleteMany(
+      { purchase: id }
+    );
 
     //payments create & update
     let purchase_payment_types = payment_types
@@ -1143,18 +1157,21 @@ const update_purchase_order = async (req, res) => {
     let data_payment_status = payment_status
       ? parseFloat(payment_status || 0)
       : 0;
-    if (parseFloat(data_payment_status) == 2) {
-      if (parseFloat(purchase_paid) == parseFloat(grandTotal)) {
-        data_payment_status = 2;
-      } else if (
-        parseFloat(purchase_paid) > 0 &&
-        parseFloat(purchase_paid) < parseFloat(grandTotal)
-      ) {
-        data_payment_status = 1;
-      } else {
-        data_payment_status = 0;
-      }
+    // if (parseFloat(data_payment_status) == 2) {
+    if (
+      parseFloat(purchase_paid?.toFixed(3) || 0) ==
+      parseFloat(grandTotal?.toFixed(3) || 0)
+    ) {
+      data_payment_status = 2;
+    } else if (
+      parseFloat(purchase_paid) > 0 &&
+      parseFloat(purchase_paid) < parseFloat(grandTotal)
+    ) {
+      data_payment_status = 1;
+    } else {
+      data_payment_status = 0;
     }
+    // }
 
     //Perform bulk database operations
     await inventories.bulkWrite(inventoryUpdates, { session });
@@ -1175,6 +1192,7 @@ const update_purchase_order = async (req, res) => {
     purchaseOrder.set({
       supplier,
       number: assignedNumber,
+      invoice: invoice,
       date,
       due_date,
       subtotal,
@@ -1183,7 +1201,8 @@ const update_purchase_order = async (req, res) => {
       delivery,
       total: grandTotal,
       delivery_status: deliveryStatus,
-      delivery_date: deliveryStatus == 2 ? delivery_date : "",
+      delivery_date:
+        deliveryStatus == 2 ? (delivery_date ? delivery_date : new Date()) : "",
       status,
       payment_status: data_payment_status,
     });
@@ -1442,16 +1461,28 @@ const get_all_purchase_orders = async (req, res) => {
     if (status == 0) purchase_ordersList.status = status;
 
     if (date?.start && date?.end) {
+      let startDate = new Date(date.start);
+      startDate.setHours(0, 0, 0, 0);
+
+      let endDate = new Date(date.end);
+      endDate.setHours(23, 59, 59, 999);
+
       purchase_ordersList.date = {
-        $gte: new Date(date?.start),
-        $lte: new Date(date?.end),
+        $gte: startDate,
+        $lte: endDate,
       };
     }
 
     if (due_date?.start && due_date?.end) {
+      let startDate = new Date(due_date.start);
+      startDate.setHours(0, 0, 0, 0);
+
+      let endDate = new Date(due_date.end);
+      endDate.setHours(23, 59, 59, 999);
+
       purchase_ordersList.due_date = {
-        $gte: new Date(due_date?.start),
-        $lte: new Date(due_date?.end),
+        $gte: startDate,
+        $lte: endDate,
       };
     }
 

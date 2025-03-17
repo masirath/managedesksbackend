@@ -18,6 +18,10 @@ const customers_log_schema = mongoose.Schema({
     required: true,
     type: String,
   },
+  tax: {
+    required: false,
+    type: String,
+  },
   area: {
     required: false,
     type: String,

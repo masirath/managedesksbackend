@@ -88,6 +88,7 @@ const create_inventory = async (req, res) => {
           const selected_inventory_number = await inventories.findOne({
             number: assigned_number,
             branch: branch ? branch : authorize?.branch,
+            status: { $ne: 2 },
           });
 
           if (selected_inventory_number) {
@@ -98,6 +99,7 @@ const create_inventory = async (req, res) => {
                 { barcode: { $ne: "" } },
                 { barcode },
                 { branch: branch || authorize?.branch },
+                { status: { $ne: 2 } },
               ],
             });
 
@@ -230,6 +232,7 @@ const update_inventory = async (req, res) => {
               _id: { $ne: id },
               number: assigned_number,
               branch: branch ? branch : authorize?.branch,
+              status: { $ne: 2 },
             });
 
             if (selected_inventory_number) {
@@ -241,6 +244,7 @@ const update_inventory = async (req, res) => {
                   { barcode: { $ne: "" } },
                   { barcode },
                   { branch: branch || authorize?.branch },
+                  { status: { $ne: 2 } },
                 ],
               });
 
@@ -268,7 +272,7 @@ const update_inventory = async (req, res) => {
                 });
                 const inventory_log_save = await inventory_log?.save();
 
-                selected_inventory.number = assigned_number;
+                // selected_inventory.number = assigned_number;
                 selected_inventory.product = product;
                 selected_inventory.barcode = barcode;
                 selected_inventory.supplier = supplier;
@@ -288,19 +292,58 @@ const update_inventory = async (req, res) => {
 
                 const inventory_update = await selected_inventory?.save();
 
-                // inventory unit details update
-                const selected_inventory_unit_details_delete =
-                  await inventories_units_details?.deleteMany({
+                //unit details
+                const unit_details = details;
+
+                const selected_inventory_unit_details =
+                  await inventories_units_details?.find({
                     inventory: selected_inventory?._id,
                   });
 
-                const unit_details = details;
+                const validUnitIds = unit_details.map((unit) =>
+                  unit?.id?.toString()
+                );
+
+                const missingUnits = selected_inventory_unit_details.filter(
+                  (item) => !validUnitIds.includes(item?._id?.toString())
+                );
+
+                if (missingUnits.length > 0) {
+                  await inventories_units_details.deleteMany({
+                    _id: { $in: missingUnits.map((item) => item._id) },
+                  });
+                }
+
                 if (unit_details?.length > 0) {
                   let total = unit_details?.length;
                   let count = 0;
 
                   for (value of unit_details) {
-                    if (value?.name) {
+                    if (value?.id) {
+                      //update unit details
+                      const selected_inventory_unit_detail =
+                        await inventories_units_details?.findById(value?.id);
+
+                      selected_inventory_unit_detail.inventory =
+                        inventory_update?._id;
+                      selected_inventory_unit_detail.name = value?.name;
+                      selected_inventory_unit_detail.conversion =
+                        value?.conversion ? value?.conversion : 0;
+                      selected_inventory_unit_detail.purchase_price =
+                        value?.purchase_price ? value?.purchase_price : 0;
+                      selected_inventory_unit_detail.price_per_unit =
+                        value?.price_per_unit ? value?.price_per_unit : 0;
+                      selected_inventory_unit_detail.sale_price =
+                        value?.sale_price ? value?.sale_price : 0;
+                      selected_inventory_unit_detail.stock = value?.stock
+                        ? value?.stock
+                        : 0;
+
+                      const selected_inventory_unit_detail_save =
+                        await selected_inventory_unit_detail?.save();
+                      count++;
+                    } else {
+                      //create unit details
                       const inventory_unit_detail =
                         new inventories_units_details({
                           inventory: inventory_update?._id,
@@ -323,8 +366,6 @@ const update_inventory = async (req, res) => {
 
                       const inventory_unit_detail_save =
                         await inventory_unit_detail?.save();
-                      count++;
-                    } else {
                       count++;
                     }
                   }
@@ -444,10 +485,7 @@ const get_inventory = async (req, res) => {
 const get_all_inventories = async (req, res) => {
   try {
     const authorize = authorization(req);
-
-    if (!authorize) {
-      return unauthorized(res);
-    }
+    if (!authorize) return unauthorized(res);
 
     const {
       search,
@@ -472,19 +510,23 @@ const get_all_inventories = async (req, res) => {
       status: { $ne: 2 },
     };
 
-    if (!stock) {
-      inventoryList.stock = { $gt: 0 };
-    }
-
+    if (!stock) inventoryList.stock = { $gt: 0 };
     if (product) inventoryList.product = product;
     if (purchase) inventoryList.purchase = purchase;
     if (supplier) inventoryList.supplier = supplier;
     if (type != null) inventoryList.type = type;
     if (status != null) inventoryList.status = status;
+
     if (date?.start && date?.end) {
+      let startDate = new Date(date.start);
+      startDate.setHours(0, 0, 0, 0);
+
+      let endDate = new Date(date.end);
+      endDate.setHours(23, 59, 59, 999);
+
       inventoryList.expiry_date = {
-        $gte: new Date(date.start),
-        $lte: new Date(date.end),
+        $gte: startDate,
+        $lte: endDate,
       };
     }
 
@@ -493,186 +535,62 @@ const get_all_inventories = async (req, res) => {
     else if (sort === 1) sortOption = { stock: -1 };
     else if (sort === 2) sortOption = { expiry_date: 1 };
 
-    // Search by inventory key number
+    // Optimize search query with aggregation
     if (search) {
-      const inventoryMatch = await inventories
-        .find({
-          $or: [
-            { number: !isNaN(search) ? Number(search) : undefined },
-            { key_number: !isNaN(search) ? Number(search) : undefined },
-          ].filter(Boolean),
-        })
-        .select("_id");
-
-      if (inventoryMatch.length > 0) {
-        inventoryList._id = { $in: inventoryMatch.map((inv) => inv._id) };
-      } else {
-        // Fetch product IDs matching the search query
-        const matchingProducts = await products
-          .find({
+      const productIds = await products
+        .find(
+          {
             $or: [
-              { name: { $regex: search, $options: "i" } },
+              { name: { $regex: `^${search}`, $options: "i" } },
+              // { name: { $regex: search, $options: "i" } },
               { barcode: { $regex: search, $options: "i" } },
             ],
-          })
-          .select("_id");
+          },
+          { _id: 1 }
+        )
+        .lean();
 
-        const productIds = matchingProducts.map((p) => p._id);
-
-        if (productIds.length > 0) {
-          inventoryList.product = { $in: productIds };
-        } else {
-          // If search is provided but no matching results, return empty response
-          return success_200(res, "", {
-            currentPage: page_number,
-            totalPages: 0,
-            totalCount: 0,
-            data: [],
-          });
-        }
+      if (productIds.length > 0) {
+        inventoryList.product = { $in: productIds.map((p) => p._id) };
+      } else {
+        return success_200(res, "", {
+          currentPage: page_number,
+          totalPages: 0,
+          totalCount: 0,
+          data: [],
+        });
       }
     }
 
-    // Get total count before filtering purchases
-    const totalCount = await inventories.countDocuments(inventoryList);
+    // Run count and data queries in parallel
+    const [totalCount, all_inventories] = await Promise.all([
+      inventories.countDocuments(inventoryList),
+      inventories
+        .find(inventoryList)
+        .populate({
+          path: "product",
+          populate: { path: "unit" },
+        })
+        .populate("purchase")
+        .populate("supplier")
+        .sort(sortOption)
+        .skip(skip)
+        .limit(page_limit)
+        .lean(), // Use lean for faster performance
+    ]);
 
-    // Fetch paginated data
-    const all_inventories = await inventories
-      .find(inventoryList)
-      .populate({
-        path: "product",
-        populate: { path: "unit" },
-      })
-      .populate("purchase")
-      .populate("supplier")
-      .sort(sortOption);
-
-    const totalPages = Math.ceil(all_inventories.length / page_limit);
-
-    // Apply pagination after filtering
-    const paginatedData = all_inventories.slice(skip, skip + page_limit);
+    const totalPages = Math.ceil(totalCount / page_limit);
 
     success_200(res, "", {
       currentPage: page_number,
       totalPages,
-      totalCount: all_inventories?.length,
-      data: paginatedData,
+      totalCount,
+      data: all_inventories,
     });
   } catch (error) {
     catch_400(res, error?.message);
   }
 };
-
-// const get_all_inventories = async (req, res) => {
-//   try {
-//     const authorize = authorization(req);
-
-//     if (!authorize) {
-//       return unauthorized(res);
-//     }
-
-//     const {
-//       search,
-//       sort,
-//       product,
-//       date,
-//       type,
-//       status,
-//       purchase,
-//       supplier,
-//       page,
-//       limit,
-//       stock,
-//     } = req.body;
-
-//     const page_number = Number(page) || 1;
-//     const page_limit = Number(limit) || 10;
-//     const skip = (page_number - 1) * page_limit;
-
-//     const inventoryList = {
-//       branch: authorize.branch,
-//       status: { $ne: 2 },
-//     };
-
-//     if (!stock) {
-//       inventoryList.stock = { $gt: 0 };
-//     }
-
-//     if (product) inventoryList.product = product;
-//     if (purchase) inventoryList.purchase = purchase;
-//     if (supplier) inventoryList.purchase = supplier;
-//     if (type != null) inventoryList.type = type;
-//     if (status != null) inventoryList.status = status;
-//     if (status != null) inventoryList.status = status;
-//     if (date?.start && date?.end) {
-//       inventoryList.expiry_date = {
-//         $gte: new Date(date.start),
-//         $lte: new Date(date.end),
-//       };
-//     }
-
-//     let sortOption = { created: -1 };
-//     if (sort === 0) sortOption = { stock: 1 };
-//     else if (sort === 1) sortOption = { stock: -1 };
-//     else if (sort === 2) sortOption = { expiry_date: 1 };
-
-//     // Fetch product IDs matching the search query
-//     let productIds = [];
-//     if (search) {
-//       const matchingProducts = await products
-//         .find({
-//           $or: [
-//             { name: { $regex: search, $options: "i" } },
-//             { barcode: { $regex: search, $options: "i" } },
-//           ],
-//         })
-//         .select("_id");
-
-//       productIds = matchingProducts.map((p) => p._id);
-//     }
-
-//     // Apply product search if productIds are found
-//     if (productIds.length > 0) {
-//       inventoryList.product = { $in: productIds };
-//     } else if (search) {
-//       // If search is provided but no matching products, return empty result
-//       return success_200(res, "", {
-//         currentPage: page_number,
-//         totalPages: 0,
-//         totalCount: 0,
-//         data: [],
-//       });
-//     }
-
-//     // Get total count before filtering purchases
-//     const totalCount = await inventories.countDocuments(inventoryList);
-
-//     // Fetch paginated data
-//     const all_inventories = await inventories
-//       .find(inventoryList)
-//       .populate({
-//         path: "product",
-//         populate: { path: "unit" },
-//       })
-//       .populate("purchase")
-//       .populate("supplier")
-//       .sort(sortOption);
-
-//     const totalPages = Math.ceil(all_inventories.length / page_limit);
-
-//     // Apply pagination after filtering
-//     const paginatedData = all_inventories.slice(skip, skip + page_limit);
-
-//     success_200(res, "", {
-//       currentPage: page_number,
-//       totalPages,
-//       totalCount: all_inventories?.length,
-//       data: paginatedData,
-//     });
-//   } catch (error) {
-//     catch_400(res, error?.message);
-//   }
-// };
 
 const get_inventory_log = async (req, res) => {
   try {
@@ -762,7 +680,7 @@ const get_inventory_barcode = async (req, res) => {
         incomplete_400(res);
       } else {
         const selected_inventory = await inventories
-          ?.findOne({ barcode: barcode })
+          ?.findOne({ barcode: barcode, branch: authorize?.branch })
           ?.populate({
             path: "product",
             match: { status: 1 },

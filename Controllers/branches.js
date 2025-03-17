@@ -329,6 +329,56 @@ const get_all_branches = async (req, res) => {
     const page_number = Number(page) || 1;
     const page_limit = Number(limit) || 10;
 
+    const branchList = { ref: authorize?.ref, status: { $ne: 2 } };
+
+    if (search) {
+      branchList.name = { $regex: search, $options: "i" };
+    }
+
+    // Set sorting options
+    let sortOption = { created: -1 }; // Default sorting
+    if (sort == 0) {
+      sortOption = { name: 1 }; // Sort by name ascending
+    } else if (sort == 1) {
+      sortOption = { name: -1 }; // Sort by name descending
+    }
+
+    // Get total count for pagination metadata
+    const totalCount = await branches.countDocuments(branchList);
+
+    // Fetch paginated data
+    const paginated_branches = await branches
+      .find(branchList)
+      .sort(sortOption)
+      .skip((page_number - 1) * page_limit)
+      .limit(page_limit);
+
+    const totalPages = Math.ceil(totalCount / page_limit);
+
+    success_200(res, "", {
+      currentPage: page_number,
+      totalPages,
+      totalCount,
+      data: paginated_branches,
+    });
+  } catch (errors) {
+    catch_400(res, errors?.message);
+  }
+};
+
+const get_all_branches_details = async (req, res) => {
+  try {
+    let authorize = authorization(req);
+
+    if (!authorize) {
+      return unauthorized(res);
+    }
+
+    const { search, sort, page, limit } = req?.body;
+
+    const page_number = Number(page) || 1;
+    const page_limit = Number(limit) || 10;
+
     const branchList = { ref: authorize?.ref };
 
     if (search) {
@@ -366,20 +416,55 @@ const get_all_branches = async (req, res) => {
   }
 };
 
-// const get_all_branches = async (req, res) => {
-//   try {
-//     let authorize = authorization(req);
+const get_all_sub_branches = async (req, res) => {
+  try {
+    let authorize = authorization(req);
 
-//     if (authorize) {
-//       const all_branches = await branches?.find({ ref: authorize?.ref });
-//       success_200(res, "", all_branches);
-//     } else {
-//       unauthorized(res);
-//     }
-//   } catch (errors) {
-//     catch_400(res, errors?.message);
-//   }
-// };
+    if (!authorize) {
+      return unauthorized(res);
+    }
+
+    const { search, sort, page, limit } = req?.body;
+
+    const page_number = Number(page) || 1;
+    const page_limit = Number(limit) || 10;
+
+    const branchList = { ref: authorize?.ref, _id: { $ne: authorize?.branch } };
+
+    if (search) {
+      branchList.name = { $regex: search, $options: "i" };
+    }
+
+    // Set sorting options
+    let sortOption = { created: -1 }; // Default sorting
+    if (sort == 0) {
+      sortOption = { name: 1 }; // Sort by name ascending
+    } else if (sort == 1) {
+      sortOption = { name: -1 }; // Sort by name descending
+    }
+
+    // Get total count for pagination metadata
+    const totalCount = await branches.countDocuments(branchList);
+
+    // Fetch paginated data
+    const paginated_branches = await branches
+      .find(branchList)
+      .sort(sortOption)
+      .skip((page_number - 1) * page_limit)
+      .limit(page_limit);
+
+    const totalPages = Math.ceil(totalCount / page_limit);
+
+    success_200(res, "", {
+      currentPage: page_number,
+      totalPages,
+      totalCount,
+      data: paginated_branches,
+    });
+  } catch (errors) {
+    catch_400(res, errors?.message);
+  }
+};
 
 const get_branch_log = async (req, res) => {
   try {
@@ -434,6 +519,7 @@ module.exports = {
   delete_branch,
   get_branch,
   get_all_branches,
+  get_all_sub_branches,
   get_branch_log,
   get_all_branches_log,
 };

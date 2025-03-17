@@ -44,13 +44,21 @@ const create_expense = async (req, res) => {
     const authorize = authorization(req);
 
     if (authorize) {
-      const { number, date, category, description, amount, status, branch } =
-        req?.body;
+      const {
+        number,
+        date,
+        category,
+        description,
+        payment,
+        amount,
+        status,
+        branch,
+      } = req?.body;
 
       let new_number = await get_next_expense(req, res, 1000);
       let assigned_number = number ? number : new_number;
 
-      if (!assigned_number || !date || !category || !amount) {
+      if (!assigned_number || !date || !category || !payment || !amount) {
         incomplete_400(res);
       } else {
         const expense = new expenses({
@@ -58,6 +66,7 @@ const create_expense = async (req, res) => {
           date: date,
           category: checknull(category),
           description: description,
+          payment: payment,
           amount: amount,
           status: status ? status : 0,
           ref: authorize?.ref,
@@ -88,6 +97,7 @@ const update_expense = async (req, res) => {
         date,
         category,
         description,
+        payment,
         amount,
         status,
         branch,
@@ -96,7 +106,14 @@ const update_expense = async (req, res) => {
       let new_number = await get_next_expense(req, res, 1000);
       let assigned_number = number ? number : new_number;
 
-      if (!id || !assigned_number || !date || !category || !amount) {
+      if (
+        !id ||
+        !assigned_number ||
+        !date ||
+        !category ||
+        !payment ||
+        !amount
+      ) {
         incomplete_400(res);
       } else {
         const selected_expense = await expenses?.findById(id);
@@ -104,31 +121,43 @@ const update_expense = async (req, res) => {
         if (!selected_expense || selected_expense?.status == 2) {
           failed_400(res, "Expense not found");
         } else {
-          const expense_log = new expenses_log({
-            number: selected_expense?.number,
-            date: selected_expense?.date,
-            category: selected_expense?.category,
-            description: selected_expense?.description,
-            amount: selected_expense?.amount,
-            status: selected_expense?.status,
-            ref: selected_expense?.ref,
-            branch: selected_expense?.branch,
-            updated: new Date(),
-            updated_by: authorize?.id,
+          const selected_expense_number = await expenses?.findOne({
+            _id: { $ne: id },
+            number: number,
+            branch: authorize?.branch,
           });
 
-          const expense_log_save = await expense_log?.save();
+          if (selected_expense_number) {
+            failed_400(res, "Expense number exists");
+          } else {
+            const expense_log = new expenses_log({
+              number: selected_expense?.number,
+              date: selected_expense?.date,
+              category: selected_expense?.category,
+              description: selected_expense?.description,
+              payment: selected_expense?.amount,
+              amount: selected_expense?.amount,
+              status: selected_expense?.status,
+              ref: selected_expense?.ref,
+              branch: selected_expense?.branch,
+              updated: new Date(),
+              updated_by: authorize?.id,
+            });
 
-          selected_expense.number = assigned_number;
-          selected_expense.date = date;
-          selected_expense.category = category;
-          selected_expense.description = description;
-          selected_expense.amount = amount;
-          selected_expense.status = status ? status : 0;
-          selected_expense.branch = branch ? branch : authorize?.branch;
+            const expense_log_save = await expense_log?.save();
 
-          const expense_save = await selected_expense?.save();
-          success_200(res, "Expense updated");
+            selected_expense.number = assigned_number;
+            selected_expense.date = date;
+            selected_expense.category = category;
+            selected_expense.description = description;
+            selected_expense.payment = payment;
+            selected_expense.amount = amount;
+            selected_expense.status = status ? status : 0;
+            selected_expense.branch = branch ? branch : authorize?.branch;
+
+            const expense_save = await selected_expense?.save();
+            success_200(res, "Expense updated");
+          }
         }
       }
     } else {
@@ -238,10 +267,17 @@ const get_all_expenses = async (req, res) => {
     if (status == 0) {
       expensesList.status = status;
     }
+
     if (date?.start && date?.end) {
+      let startDate = new Date(date.start);
+      startDate.setHours(0, 0, 0, 0);
+
+      let endDate = new Date(date.end);
+      endDate.setHours(23, 59, 59, 999);
+
       expensesList.date = {
-        $gte: new Date(date?.start),
-        $lte: new Date(date?.end),
+        $gte: startDate,
+        $lte: endDate,
       };
     }
 

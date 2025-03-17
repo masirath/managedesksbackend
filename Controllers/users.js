@@ -427,9 +427,9 @@ const update_user_auth = async (req, res) => {
     const authorize = authorization(req);
 
     if (authorize) {
-      const { name } = req?.body;
+      const { password } = req?.body;
 
-      if (!name) {
+      if (!password) {
         incomplete_400(res);
       } else {
         const selected_user = await users?.findById(authorize?.id);
@@ -454,9 +454,11 @@ const update_user_auth = async (req, res) => {
           });
           const user_log_save = await user_log?.save();
 
-          selected_user.name = name;
+          const hashed_password = await bcrypt.hash(password, 10);
+
+          selected_user.password = hashed_password;
           const user_update = await selected_user?.save();
-          success_200(res, "User updated");
+          success_200(res, "User auth updated");
         }
       }
     } else {
@@ -639,38 +641,6 @@ const get_all_users = async (req, res) => {
     catch_400(res, errors?.message);
   }
 };
-
-// const get_all_users = async (req, res) => {
-//   try {
-//     const authorize = authorization(req);
-
-//     if (authorize) {
-//       const all_users = await users
-//         ?.find({
-//           ref: authorize?.ref,
-//           role: { $ne: "SUPERADMIN" },
-//         })
-//         .select("-password");
-
-//       let all_user_details = [];
-
-//       for (value of all_users) {
-//         let user_role = await roles?.findById(value?.role);
-
-//         all_user_details?.push({
-//           ...value?.toObject(),
-//           role: user_role,
-//         });
-//       }
-
-//       success_200(res, "", all_user_details);
-//     } else {
-//       unauthorized(res);
-//     }
-//   } catch (errors) {
-//     catch_400(res, errors?.message);
-//   }
-// };
 
 const get_user_log = async (req, res) => {
   try {

@@ -577,7 +577,7 @@ const update_transfer = async (req, res) => {
       ) {
         incomplete_400(res);
       } else {
-        success_200(res, "Trasfer updated");
+        failed_400(res, "Transfer already completed");
         // const selected_transfer = await transfers?.findById(id);
 
         // if (!selected_transfer || selected_transfer?.status == 2) {
@@ -1305,16 +1305,15 @@ const get_all_transfers = async (req, res) => {
     if (status == 0) transfersList.status = status;
 
     if (date?.start && date?.end) {
-      transfersList.date = {
-        $gte: new Date(date?.start),
-        $lte: new Date(date?.end),
-      };
-    }
+      let startDate = new Date(date.start);
+      startDate.setHours(0, 0, 0, 0);
 
-    if (due_date?.start && due_date?.end) {
-      transfersList.due_date = {
-        $gte: new Date(due_date?.start),
-        $lte: new Date(due_date?.end),
+      let endDate = new Date(date.end);
+      endDate.setHours(23, 59, 59, 999);
+
+      transfersList.date = {
+        $gte: startDate,
+        $lte: endDate,
       };
     }
 

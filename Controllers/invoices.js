@@ -20,6 +20,7 @@ const invoices_units_details_log = require("../Models/invoices_units_details_log
 const inventories_log = require("../Models/inventories_log");
 const inventories_units_details_log = require("../Models/inventories_units_details_log");
 const { default: mongoose } = require("mongoose");
+const roles_details = require("../Models/roles_details");
 
 const get_next_invoice = async (req, res, number) => {
   try {
@@ -189,7 +190,8 @@ const create_invoice = async (req, res) => {
                       : 0
                     : selected_unit?.sale_price
                     ? selected_unit?.sale_price
-                    : 0;
+                    : // : 0;
+                      selected_inventory?.sale_price;
                 let invoice_purchase_price =
                   selected_inventory?._id == value?.unit
                     ? selected_inventory?.purchase_price
@@ -197,7 +199,8 @@ const create_invoice = async (req, res) => {
                       : 0
                     : selected_unit?.purchase_price
                     ? selected_unit?.purchase_price
-                    : 0;
+                    : // : 0;
+                      selected_inventory?.purchase_price;
                 let invoice_price_per_unit =
                   selected_inventory?._id == value?.unit
                     ? selected_inventory?.price_per_unit
@@ -205,7 +208,9 @@ const create_invoice = async (req, res) => {
                       : 0
                     : selected_unit?.price_per_unit
                     ? selected_unit?.price_per_unit
-                    : 0;
+                    : // : 0;
+                      selected_inventory?.price_per_unit;
+                selected_inventory?.price_per_unit;
                 let invoice_conversion =
                   selected_inventory?._id == value?.unit
                     ? selected_inventory?.conversion
@@ -265,7 +270,7 @@ const create_invoice = async (req, res) => {
                   }
 
                   inventory_stock = stock;
-                } else {
+                } else if (selected_unit?._id == value?.unit) {
                   //if sub unit
                   let stock = parseFloat(selected_inventory?.stock || 0);
                   let delivered = parseFloat(value?.delivered || 0);
@@ -274,14 +279,28 @@ const create_invoice = async (req, res) => {
                   let total_unit_stock =
                     parseFloat(delivered || 0) / parseFloat(conversion || 0);
 
-                  console.log(total_unit_stock, stock);
-
                   if (
                     parseFloat(total_unit_stock || 0) <= parseFloat(stock || 0)
                   ) {
                     stock =
                       parseFloat(stock || 0) -
                       parseFloat(total_unit_stock || 0);
+                  } else {
+                    stock = 0;
+                  }
+
+                  inventory_stock = stock;
+                } else {
+                  //if main unit (new)
+                  let stock = parseFloat(selected_inventory?.stock || 0);
+
+                  if (
+                    parseFloat(value?.delivered || 0) <=
+                    parseFloat(selected_inventory?.stock || 0)
+                  ) {
+                    stock =
+                      parseFloat(selected_inventory?.stock || 0) -
+                      parseFloat(value?.delivered || 0);
                   } else {
                     stock = 0;
                   }
@@ -324,6 +343,7 @@ const create_invoice = async (req, res) => {
                 if (selected_inventories_units_details?.length > 0) {
                   for (v of selected_inventories_units_details) {
                     if (v?._id == value?.unit) {
+                      //sub uints
                       let selected_inventory_unit_detail =
                         await inventories_units_details?.findById(v?._id);
 
@@ -348,6 +368,7 @@ const create_invoice = async (req, res) => {
                           await selected_inventory_unit_detail?.save();
                       }
                     } else {
+                      //main units
                       let selected_inventory_unit_detail =
                         await inventories_units_details?.findById(v?._id);
 
@@ -427,21 +448,21 @@ const create_invoice = async (req, res) => {
               let data_delivery_status = delivery_status
                 ? parseFloat(delivery_status || 0)
                 : 0;
-              let data_delivery_date = delivery_date ? delivery_date : "";
+              let data_delivery_date = delivery_date
+                ? delivery_date
+                : new Date();
 
-              if (parseFloat(data_delivery_status) == 2) {
-                if (parseFloat(delivery_count) == details?.length) {
-                  data_delivery_status = 2;
-                } else if (
-                  parseFloat(delivery_count) > 0 &&
-                  parseFloat(delivery_count) < details?.length
-                ) {
-                  data_delivery_status = 1;
-                  data_delivery_date = "";
-                } else {
-                  data_delivery_status = 0;
-                  data_delivery_date = "";
-                }
+              if (parseFloat(delivery_count) == details?.length) {
+                data_delivery_status = 2;
+              } else if (
+                parseFloat(delivery_count) > 0 &&
+                parseFloat(delivery_count) < details?.length
+              ) {
+                data_delivery_status = 1;
+                data_delivery_date = "";
+              } else {
+                data_delivery_status = 0;
+                data_delivery_date = "";
               }
 
               //grand total
@@ -492,18 +513,21 @@ const create_invoice = async (req, res) => {
                 ? parseFloat(payment_status || 0)
                 : 0;
 
-              if (parseFloat(data_payment_status) == 2) {
-                if (parseFloat(invoice_paid) == parseFloat(grand_total)) {
-                  data_payment_status = 2;
-                } else if (
-                  parseFloat(invoice_paid) > 0 &&
-                  parseFloat(invoice_paid) < parseFloat(grand_total)
-                ) {
-                  data_payment_status = 1;
-                } else {
-                  invoice_payment_details = [];
-                  data_payment_status = 0;
-                }
+              if (
+                parseFloat(invoice_paid?.toFixed(3) || 0) ==
+                  parseFloat(grand_total)?.toFixed(3) ||
+                0
+              ) {
+                data_payment_status = 2;
+              } else if (
+                parseFloat(invoice_paid?.toFixed(3) || 0) > 0 &&
+                parseFloat(invoice_paid?.toFixed(3) || 0) <
+                  parseFloat(grand_total || 0)
+              ) {
+                data_payment_status = 1;
+              } else {
+                invoice_payment_details = [];
+                data_payment_status = 0;
               }
 
               //order payment
@@ -591,7 +615,6 @@ const update_invoice = async (req, res) => {
       let assigned_number = number ? number : new_number;
 
       if (
-        // !customer ||
         !id ||
         !assigned_number ||
         !date ||
@@ -615,7 +638,6 @@ const update_invoice = async (req, res) => {
             failed_400(res, "Invoice number exists");
           } else {
             //invoice details
-            let invoice_details = [];
             let invoice_subtotal = 0;
             let invoice_taxamount = 0;
             let invoice_total = 0;
@@ -659,7 +681,8 @@ const update_invoice = async (req, res) => {
                         : 0
                       : selected_unit?.sale_price
                       ? selected_unit?.sale_price
-                      : 0;
+                      : // : 0;
+                        selected_inventory?.sale_price;
                   let invoice_purchase_price =
                     selected_inventory?._id == value?.unit
                       ? selected_inventory?.purchase_price
@@ -667,7 +690,8 @@ const update_invoice = async (req, res) => {
                         : 0
                       : selected_unit?.purchase_price
                       ? selected_unit?.purchase_price
-                      : 0;
+                      : // : 0;
+                        selected_inventory?.purchase_price;
                   let invoice_price_per_unit =
                     selected_inventory?._id == value?.unit
                       ? selected_inventory?.price_per_unit
@@ -675,7 +699,8 @@ const update_invoice = async (req, res) => {
                         : 0
                       : selected_unit?.price_per_unit
                       ? selected_unit?.price_per_unit
-                      : 0;
+                      : // : 0;
+                        selected_inventory?.price_per_unit;
                   let invoice_conversion =
                     selected_inventory?._id == value?.unit
                       ? selected_inventory?.conversion
@@ -720,177 +745,320 @@ const update_invoice = async (req, res) => {
                     delivery_count++;
                   }
 
-                  const selected_invoices_details =
-                    await invoices_details?.findOne({
-                      description: selected_inventory?._id,
-                    });
+                  if (value?.id) {
+                    const selected_invoices_details =
+                      await invoices_details?.findById(value?.id);
 
-                  //inventories create (stock calculation)
-                  let inventory_stock = 0;
-                  if (selected_inventory?._id == value?.unit) {
-                    //if main unit
-                    let stock = parseFloat(selected_inventory?.stock || 0);
+                    //inventories create (stock calculation)
+                    let inventory_stock = 0;
+                    if (selected_inventory?._id == value?.unit) {
+                      //if main unit(new)
+                      let stock = parseFloat(selected_inventory?.stock || 0);
 
-                    let previous_stock = selected_invoices_details?.delivered;
+                      let previous_stock = selected_invoices_details?.delivered;
 
-                    if (
-                      parseFloat(value?.delivered || 0) <=
-                      parseFloat(selected_inventory?.stock || 0)
-                    ) {
-                      stock =
-                        parseFloat(selected_inventory?.stock || 0) -
-                        parseFloat(value?.delivered || 0);
+                      let current_stock =
+                        parseFloat(value?.delivered || 0) -
+                        parseFloat(previous_stock || 0);
+
+                      if (
+                        parseFloat(current_stock || 0) <=
+                        parseFloat(selected_inventory?.stock || 0)
+                      ) {
+                        stock =
+                          parseFloat(selected_inventory?.stock || 0) -
+                          parseFloat(current_stock || 0);
+                      } else {
+                        stock = 0;
+                      }
+
+                      inventory_stock = stock;
+                    } else if (selected_unit?._id == value?.unit) {
+                      //if sub unit (new)
+                      let stock = parseFloat(selected_inventory?.stock || 0);
+                      let delivered = parseFloat(value?.delivered || 0);
+                      let conversion = parseFloat(
+                        selected_unit?.conversion || 0
+                      );
+
+                      let total_unit_stock =
+                        parseFloat(delivered || 0) /
+                        parseFloat(conversion || 0);
+
+                      let previous_stock =
+                        parseFloat(selected_invoices_details?.delivered || 0) /
+                        parseFloat(conversion || 0);
+
+                      let current_stock =
+                        parseFloat(total_unit_stock || 0) -
+                        parseFloat(previous_stock || 0);
+
+                      if (
+                        parseFloat(current_stock || 0) <= parseFloat(stock || 0)
+                      ) {
+                        stock =
+                          parseFloat(stock || 0) -
+                          parseFloat(current_stock || 0);
+                      } else {
+                        stock = 0;
+                      }
+
+                      inventory_stock = stock;
                     } else {
-                      stock = 0;
+                      // (NEW)
+                      //if main unit(new)
+                      let stock = parseFloat(selected_inventory?.stock || 0);
+
+                      let previous_stock = selected_invoices_details?.delivered;
+
+                      let current_stock =
+                        parseFloat(value?.delivered || 0) -
+                        parseFloat(previous_stock || 0);
+
+                      if (
+                        parseFloat(current_stock || 0) <=
+                        parseFloat(selected_inventory?.stock || 0)
+                      ) {
+                        stock =
+                          parseFloat(selected_inventory?.stock || 0) -
+                          parseFloat(current_stock || 0);
+                      } else {
+                        stock = 0;
+                      }
+
+                      inventory_stock = stock;
                     }
 
-                    inventory_stock = stock;
-                  } else {
-                    //if sub unit
-                    let stock = parseFloat(selected_inventory?.stock || 0);
-                    let delivered = parseFloat(value?.delivered || 0);
-                    let conversion = parseFloat(selected_unit?.conversion || 0);
+                    selected_inventory.stock = inventory_stock;
+                    const selected_inventory_save =
+                      await selected_inventory?.save();
 
-                    let total_unit_stock =
-                      parseFloat(delivered || 0) / parseFloat(conversion || 0);
+                    if (selected_invoices_details) {
+                      //inventory units details
+                      if (selected_inventories_units_details?.length > 0) {
+                        for (v of selected_inventories_units_details) {
+                          if (v?._id == value?.unit) {
+                            //inventory unit stock calculation for (sub unit)
+                            let selected_inventory_unit_detail =
+                              await inventories_units_details?.findById(v?._id);
 
-                    console.log(total_unit_stock, stock);
+                            if (selected_inventory_unit_detail) {
+                              let unit_stock = parseFloat(
+                                selected_inventory_unit_detail?.stock || 0
+                              );
 
-                    if (
-                      parseFloat(total_unit_stock || 0) <=
-                      parseFloat(stock || 0)
-                    ) {
-                      stock =
-                        parseFloat(stock || 0) -
-                        parseFloat(total_unit_stock || 0);
-                    } else {
-                      stock = 0;
-                    }
+                              let previous_stock =
+                                selected_invoices_details?.delivered;
 
-                    inventory_stock = stock;
-                  }
+                              let current_stock =
+                                parseFloat(value?.delivered || 0) -
+                                parseFloat(previous_stock || 0);
 
-                  selected_inventory.stock = inventory_stock;
-                  const selected_inventory_save =
-                    await selected_inventory?.save();
+                              if (
+                                parseFloat(current_stock || 0) <=
+                                parseFloat(unit_stock || 0)
+                              ) {
+                                unit_stock =
+                                  parseFloat(unit_stock || 0) -
+                                  parseFloat(current_stock || 0);
+                              } else {
+                                unit_stock = 0;
+                              }
 
-                  if (selected_invoices_details) {
-                    //update invoice details
-                    selected_invoices_details.name =
-                      selected_inventory?.product?.name;
-                    selected_invoices_details.unit = invoice_unit;
-                    selected_invoices_details.unit_name = invoice_unit_name;
-                    selected_invoices_details.sale_price = invoice_sale_price;
-                    selected_invoices_details.purchase_price =
-                      invoice_purchase_price;
-                    selected_invoices_details.conversion = invoice_conversion;
-                    selected_invoices_details.quantity = invoice_quantity;
-                    selected_invoices_details.delivered = invoice_delivered;
-                    selected_invoices_details.free = invoice_free;
-                    selected_invoices_details.tax = invoice_tax;
-                    selected_invoices_details.barcode = invoice_barcode;
-                    selected_invoices_details.price_per_unit =
-                      invoice_price_per_unit;
-                    selected_invoices_details.expiry_date = invoice_expiry_date;
-                    selected_invoices_details.tax_amount = tax_amount;
-                    selected_invoices_details.total = total;
-                    selected_invoices_details.status = status ? status : 0;
+                              selected_inventory_unit_detail.stock = unit_stock;
+                              const selected_inventory_unit_detail_save =
+                                await selected_inventory_unit_detail?.save();
+                            }
+                          } else {
+                            //inventory unit stock calculation for (main unit)
+                            let selected_inventory_unit_detail =
+                              await inventories_units_details?.findById(v?._id);
 
-                    const selected_invoices_details_save =
-                      await selected_invoices_details?.save();
+                            const selected_invoices_units_detail =
+                              await invoices_units_details?.findOne({
+                                // inventory_unit:
+                                //   selected_inventory_unit_detail?._id,
+                                details: selected_invoices_details?._id,
+                              });
 
-                    //inventory units details
-                    if (selected_inventories_units_details?.length > 0) {
-                      for (v of selected_inventories_units_details) {
-                        if (v?._id == value?.unit) {
-                          let selected_inventory_unit_detail =
-                            await inventories_units_details?.findById(v?._id);
-
-                          if (selected_inventory_unit_detail) {
                             let unit_stock = parseFloat(
                               selected_inventory_unit_detail?.stock || 0
                             );
 
+                            let delivered = parseFloat(value?.delivered || 0);
+                            let conversion = parseFloat(v?.conversion || 0);
+
+                            let total_unit_stock =
+                              parseFloat(delivered || 0) *
+                              parseFloat(conversion || 0);
+
+                            let previous_stock =
+                              selected_invoices_units_detail?.unit_delivered;
+
+                            let current_stock =
+                              parseFloat(total_unit_stock || 0) -
+                              parseFloat(previous_stock || 0);
+
                             if (
-                              parseFloat(value?.delivered || 0) <=
+                              parseFloat(current_stock || 0) <=
                               parseFloat(unit_stock || 0)
                             ) {
                               unit_stock =
                                 parseFloat(unit_stock || 0) -
-                                parseFloat(value?.delivered || 0);
+                                parseFloat(current_stock || 0);
                             } else {
                               unit_stock = 0;
                             }
 
                             selected_inventory_unit_detail.stock = unit_stock;
+
                             const selected_inventory_unit_detail_save =
                               await selected_inventory_unit_detail?.save();
+
+                            const selected_invoices_units_details =
+                              await invoices_units_details?.findOne({
+                                // inventory_unit:
+                                //   selected_inventory_unit_detail?._id,
+                                details: selected_invoices_details?._id,
+                              });
+
+                            //invoice unit details
+                            selected_invoices_units_details.name = v?.name;
+                            selected_invoices_units_details.quantity =
+                              parseFloat(value?.quantity || 0) *
+                              parseFloat(v?.conversion || 0);
+                            selected_invoices_units_details.purchase_price =
+                              v?.price_per_unit;
+                            selected_invoices_units_details.price_per_unit =
+                              v?.price_per_unit;
+                            selected_invoices_units_details.sale_price =
+                              v?.sale_price;
+                            selected_invoices_units_details.conversion =
+                              v?.conversion;
+                            selected_invoices_units_details.unit_quantity =
+                              parseFloat(value?.quantity || 0) *
+                              parseFloat(v?.conversion || 0);
+                            selected_invoices_units_details.unit_delivered =
+                              total_unit_stock;
+                            selected_invoices_units_details.status = status
+                              ? status
+                              : 0;
+
+                            const selected_invoices_units_details_save =
+                              await selected_invoices_units_details?.save();
                           }
-                        } else {
-                          let selected_inventory_unit_detail =
-                            await inventories_units_details?.findById(v?._id);
-
-                          let unit_stock = parseFloat(
-                            selected_inventory_unit_detail?.stock || 0
-                          );
-                          let delivered = parseFloat(value?.delivered || 0);
-                          let conversion = parseFloat(v?.conversion || 0);
-
-                          let total_unit_stock =
-                            parseFloat(delivered || 0) *
-                            parseFloat(conversion || 0);
-
-                          if (
-                            parseFloat(total_unit_stock || 0) <=
-                            parseFloat(unit_stock || 0)
-                          ) {
-                            unit_stock =
-                              parseFloat(unit_stock || 0) -
-                              parseFloat(total_unit_stock);
-                          } else {
-                            unit_stock = 0;
-                          }
-
-                          selected_inventory_unit_detail.stock = unit_stock;
-
-                          const selected_inventory_unit_detail_save =
-                            await selected_inventory_unit_detail?.save();
-
-                          const selected_invoices_units_details =
-                            await invoices_units_details?.findOne({
-                              inventory_unit:
-                                selected_inventory_unit_detail?._id,
-                            });
-
-                          //invoice unit details
-                          selected_invoices_units_details.name = v?.name;
-                          selected_invoices_units_details.quantity =
-                            parseFloat(value?.quantity || 0) *
-                            parseFloat(v?.conversion || 0);
-                          selected_invoices_units_details.purchase_price =
-                            v?.price_per_unit;
-                          selected_invoices_units_details.price_per_unit =
-                            v?.price_per_unit;
-                          selected_invoices_units_details.sale_price =
-                            v?.sale_price;
-                          selected_invoices_units_details.conversion =
-                            v?.conversion;
-                          selected_invoices_units_details.unit_quantity =
-                            parseFloat(value?.quantity || 0) *
-                            parseFloat(v?.conversion || 0);
-                          selected_invoices_units_details.unit_delivered =
-                            total_unit_stock;
-                          selected_invoices_units_details.status = status
-                            ? status
-                            : 0;
-
-                          const selected_invoices_units_details_save =
-                            selected_invoices_units_details?.save();
                         }
                       }
+
+                      //update invoice details
+                      selected_invoices_details.name =
+                        selected_inventory?.product?.name;
+                      selected_invoices_details.unit = invoice_unit;
+                      selected_invoices_details.unit_name = invoice_unit_name;
+                      selected_invoices_details.sale_price = invoice_sale_price;
+                      selected_invoices_details.purchase_price =
+                        invoice_purchase_price;
+                      selected_invoices_details.conversion = invoice_conversion;
+                      selected_invoices_details.quantity = invoice_quantity;
+                      selected_invoices_details.delivered = invoice_delivered;
+                      selected_invoices_details.free = invoice_free;
+                      selected_invoices_details.tax = invoice_tax;
+                      selected_invoices_details.barcode = invoice_barcode;
+                      selected_invoices_details.price_per_unit =
+                        invoice_price_per_unit;
+                      selected_invoices_details.expiry_date =
+                        invoice_expiry_date;
+                      selected_invoices_details.tax_amount = tax_amount;
+                      selected_invoices_details.total = total;
+                      selected_invoices_details.status = status ? status : 0;
+
+                      const selected_invoices_details_save =
+                        await selected_invoices_details?.save();
                     }
                   } else {
                     //create invoice details
+
+                    //new stock
+                    let inventory_stock = 0;
+                    if (selected_inventory?._id == value?.unit) {
+                      //if main unit(new)
+                      let stock = parseFloat(selected_inventory?.stock || 0);
+
+                      let previous_stock = 0;
+
+                      let current_stock =
+                        parseFloat(value?.delivered || 0) -
+                        parseFloat(previous_stock || 0);
+
+                      if (
+                        parseFloat(current_stock || 0) <=
+                        parseFloat(selected_inventory?.stock || 0)
+                      ) {
+                        stock =
+                          parseFloat(selected_inventory?.stock || 0) -
+                          parseFloat(current_stock || 0);
+                      } else {
+                        stock = 0;
+                      }
+
+                      inventory_stock = stock;
+                    } else if (selected_unit?._id == value?.unit) {
+                      //if sub unit (new)
+                      let stock = parseFloat(selected_inventory?.stock || 0);
+                      let delivered = parseFloat(value?.delivered || 0);
+                      let conversion = parseFloat(
+                        selected_unit?.conversion || 0
+                      );
+
+                      let total_unit_stock =
+                        parseFloat(delivered || 0) /
+                        parseFloat(conversion || 0);
+
+                      let previous_stock = 0;
+
+                      let current_stock =
+                        parseFloat(total_unit_stock || 0) -
+                        parseFloat(previous_stock || 0);
+
+                      if (
+                        parseFloat(current_stock || 0) <= parseFloat(stock || 0)
+                      ) {
+                        stock =
+                          parseFloat(stock || 0) -
+                          parseFloat(current_stock || 0);
+                      } else {
+                        stock = 0;
+                      }
+
+                      inventory_stock = stock;
+                    } else {
+                      //if main unit(new)
+                      let stock = parseFloat(selected_inventory?.stock || 0);
+
+                      let previous_stock = 0;
+
+                      let current_stock =
+                        parseFloat(value?.delivered || 0) -
+                        parseFloat(previous_stock || 0);
+
+                      if (
+                        parseFloat(current_stock || 0) <=
+                        parseFloat(selected_inventory?.stock || 0)
+                      ) {
+                        stock =
+                          parseFloat(selected_inventory?.stock || 0) -
+                          parseFloat(current_stock || 0);
+                      } else {
+                        stock = 0;
+                      }
+
+                      inventory_stock = stock;
+                    }
+
+                    selected_inventory.stock = inventory_stock;
+                    const selected_inventory_save =
+                      await selected_inventory?.save();
+
                     const invoice_detail = new invoices_details({
                       invoice: selected_invoice?._id,
                       description: selected_inventory?._id,
@@ -1018,30 +1186,26 @@ const update_invoice = async (req, res) => {
             }
 
             if (count == details?.length) {
-              // const selected_invoice = await invoices?.findById(
-              //   invoice_save?._id
-              // );
-
               if (selected_invoice) {
                 //delivery status
                 let data_delivery_status = delivery_status
                   ? parseFloat(delivery_status || 0)
                   : 0;
-                let data_delivery_date = delivery_date ? delivery_date : "";
+                let data_delivery_date = delivery_date
+                  ? delivery_date
+                  : new Date();
 
-                if (parseFloat(data_delivery_status) == 2) {
-                  if (parseFloat(delivery_count) == invoice_details?.length) {
-                    data_delivery_status = 2;
-                  } else if (
-                    parseFloat(delivery_count) > 0 &&
-                    parseFloat(delivery_count) < invoice_details?.length
-                  ) {
-                    data_delivery_status = 1;
-                    data_delivery_date = "";
-                  } else {
-                    data_delivery_status = 0;
-                    data_delivery_date = "";
-                  }
+                if (parseFloat(delivery_count) == details?.length) {
+                  data_delivery_status = 2;
+                } else if (
+                  parseFloat(delivery_count) > 0 &&
+                  parseFloat(delivery_count) < details?.length
+                ) {
+                  data_delivery_status = 1;
+                  data_delivery_date = "";
+                } else {
+                  data_delivery_status = 0;
+                  data_delivery_date = "";
                 }
 
                 //grand total
@@ -1060,6 +1224,11 @@ const update_invoice = async (req, res) => {
                   parseFloat(invoice_discount);
 
                 //payment status
+                const invoices_payments_delete =
+                  await invoices_payments?.deleteMany({
+                    invoice: id,
+                  });
+
                 let invoice_payment_types = payment_types
                   ? JSON?.parse(payment_types)
                   : "";
@@ -1091,24 +1260,20 @@ const update_invoice = async (req, res) => {
                 let data_payment_status = payment_status
                   ? parseFloat(payment_status || 0)
                   : 0;
-                if (parseFloat(data_payment_status) == 2) {
-                  if (parseFloat(invoice_paid) == parseFloat(grand_total)) {
-                    data_payment_status = 2;
-                  } else if (
-                    parseFloat(invoice_paid) > 0 &&
-                    parseFloat(invoice_paid) < parseFloat(grand_total)
-                  ) {
-                    data_payment_status = 1;
-                  } else {
-                    invoice_payment_details = [];
-                    data_payment_status = 0;
-                  }
+                if (
+                  parseFloat(invoice_paid?.toFixed(3) || 0) ==
+                  parseFloat(grand_total?.toFixed(3) || 0)
+                ) {
+                  data_payment_status = 2;
+                } else if (
+                  parseFloat(invoice_paid) > 0 &&
+                  parseFloat(invoice_paid) < parseFloat(grand_total)
+                ) {
+                  data_payment_status = 1;
+                } else {
+                  invoice_payment_details = [];
+                  data_payment_status = 0;
                 }
-
-                const delete_invoice_payment_details =
-                  await invoices_payments?.deleteMany({
-                    invoice: selected_invoice?._id,
-                  });
 
                 //order payment
                 if (invoice_payment_details?.length > 0) {
@@ -1151,7 +1316,7 @@ const update_invoice = async (req, res) => {
 
                 const selected_invoice_save = await selected_invoice?.save();
 
-                success_200(res, "Invoice created");
+                success_200(res, "Invoice updated");
               } else {
                 failed_400(res, "Invoice failed");
               }
@@ -1240,7 +1405,7 @@ const get_invoice = async (req, res) => {
           ?.populate("branch");
 
         if (!selected_invoice || selected_invoice?.status == 2) {
-          failed_400(res, "invoice Order not found");
+          failed_400(res, "Invoice Order not found");
         } else {
           const selected_invoices_payments = await invoices_payments?.find({
             invoice: selected_invoice?._id,
@@ -1255,28 +1420,31 @@ const get_invoice = async (req, res) => {
               match: { status: { $ne: 2 } },
             });
 
-          let invoice_details_and_units = [];
+          // Create an array of promises for fetching unit details in parallel
+          const invoice_details_and_units = await Promise.all(
+            selected_invoice_details.map(async (value) => {
+              let details = value?.toObject();
 
-          for (value of selected_invoice_details) {
-            let details = value?.toObject();
+              // Fetch inventory unit details and invoice unit details in parallel
+              const [
+                selected_inventory_unit_details,
+                selected_invoice_details_units,
+              ] = await Promise.all([
+                inventories_units_details?.find({
+                  inventory: value?.description?._id,
+                }),
+                invoices_units_details?.find({
+                  details: value?._id,
+                }),
+              ]);
 
-            let selected_inventory_unit_details =
-              await inventories_units_details?.find({
-                inventory: value?.description?._id,
-              });
-
-            const selected_invoice_details_units =
-              await invoices_units_details?.find({
-                details: value?._id,
-              });
-            // ?.sort({ created: 1 });
-
-            invoice_details_and_units?.push({
-              ...details,
-              unit_details_options: selected_invoice_details_units,
-              inventory_unit_details: selected_inventory_unit_details,
-            });
-          }
+              return {
+                ...details,
+                unit_details_options: selected_invoice_details_units || [],
+                inventory_unit_details: selected_inventory_unit_details || [],
+              };
+            })
+          );
 
           const invoiceData = selected_invoice?.toObject();
 
@@ -1294,6 +1462,76 @@ const get_invoice = async (req, res) => {
     catch_400(res, errors?.message);
   }
 };
+
+// const get_invoice = async (req, res) => {
+//   try {
+//     const authorize = authorization(req);
+
+//     if (authorize) {
+//       const { id } = req?.body;
+
+//       if (!id) {
+//         incomplete_400(res);
+//       } else {
+//         const selected_invoice = await invoices
+//           ?.findById(id)
+//           ?.populate("customer")
+//           ?.populate("branch");
+
+//         if (!selected_invoice || selected_invoice?.status == 2) {
+//           failed_400(res, "invoice Order not found");
+//         } else {
+//           const selected_invoices_payments = await invoices_payments?.find({
+//             invoice: selected_invoice?._id,
+//           });
+
+//           const selected_invoice_details = await invoices_details
+//             ?.find({
+//               invoice: selected_invoice?._id,
+//             })
+//             ?.populate({
+//               path: "description",
+//               match: { status: { $ne: 2 } },
+//             });
+
+//           let invoice_details_and_units = [];
+
+//           for (value of selected_invoice_details) {
+//             let details = value?.toObject();
+
+//             let selected_inventory_unit_details =
+//               await inventories_units_details?.find({
+//                 inventory: value?.description?._id,
+//               });
+
+//             const selected_invoice_details_units =
+//               await invoices_units_details?.find({
+//                 details: value?._id,
+//               });
+
+//             invoice_details_and_units?.push({
+//               ...details,
+//               unit_details_options: selected_invoice_details_units,
+//               inventory_unit_details: selected_inventory_unit_details,
+//             });
+//           }
+
+//           const invoiceData = selected_invoice?.toObject();
+
+//           success_200(res, "", {
+//             ...invoiceData,
+//             payments: selected_invoices_payments,
+//             details: invoice_details_and_units,
+//           });
+//         }
+//       }
+//     } else {
+//       unauthorized(res);
+//     }
+//   } catch (errors) {
+//     catch_400(res, errors?.message);
+//   }
+// };
 
 const get_all_invoices = async (req, res) => {
   try {
@@ -1324,21 +1562,34 @@ const get_all_invoices = async (req, res) => {
     if (search) {
       invoicesList.$or = [{ number: { $regex: search, $options: "i" } }];
     }
+
     if (customer) invoicesList.customer = customer;
     if (contractor) invoicesList.contractor = contractor;
     if (status == 0) invoicesList.status = status;
 
     if (date?.start && date?.end) {
+      let startDate = new Date(date.start);
+      startDate.setHours(0, 0, 0, 0);
+
+      let endDate = new Date(date.end);
+      endDate.setHours(23, 59, 59, 999);
+
       invoicesList.date = {
-        $gte: new Date(date?.start),
-        $lte: new Date(date?.end),
+        $gte: startDate,
+        $lte: endDate,
       };
     }
 
     if (due_date?.start && due_date?.end) {
+      let startDate = new Date(due_date.start);
+      startDate.setHours(0, 0, 0, 0);
+
+      let endDate = new Date(due_date.end);
+      endDate.setHours(23, 59, 59, 999);
+
       invoicesList.due_date = {
-        $gte: new Date(due_date?.start),
-        $lte: new Date(due_date?.end),
+        $gte: startDate,
+        $lte: endDate,
       };
     }
 

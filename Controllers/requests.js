@@ -556,16 +556,15 @@ const get_all_requests = async (req, res) => {
     if (status == 0) requestsList.status = status;
 
     if (date?.start && date?.end) {
-      requestsList.date = {
-        $gte: new Date(date?.start),
-        $lte: new Date(date?.end),
-      };
-    }
+      let startDate = new Date(date.start);
+      startDate.setHours(0, 0, 0, 0);
 
-    if (due_date?.start && due_date?.end) {
-      requestsList.due_date = {
-        $gte: new Date(due_date?.start),
-        $lte: new Date(due_date?.end),
+      let endDate = new Date(date.end);
+      endDate.setHours(23, 59, 59, 999);
+
+      requestsList.date = {
+        $gte: startDate,
+        $lte: endDate,
       };
     }
 
