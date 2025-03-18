@@ -89,9 +89,7 @@ const create_quote = async (req, res) => {
             taxamount: 0,
             discount: 0,
             delivery: 0,
-            delivery_status: 0,
-            delivery_date: "",
-            payment_status: 0,
+            delivery_status: delivery_status,
             total: 0,
             status: status ? status : 0,
             ref: authorize?.ref,
@@ -106,7 +104,6 @@ const create_quote = async (req, res) => {
           let quote_subtotal = 0;
           let quote_taxamount = 0;
           let quote_total = 0;
-          let delivery_count = 0;
           let count = 0;
 
           if (details?.length > 0) {
@@ -121,6 +118,7 @@ const create_quote = async (req, res) => {
               if (selected_product) {
                 let quote_unit = value?.unit ? value?.unit : "";
                 let quote_unit_name = value?.unit_name ? value?.unit_name : "";
+                let quote_summary = value?.summary ? value?.summary : "";
                 let purchase_price = value?.purchase_price
                   ? value?.purchase_price
                   : 0;
@@ -128,7 +126,6 @@ const create_quote = async (req, res) => {
                   ? value?.conversion
                   : 0;
                 let quote_quantity = value?.quantity ? value?.quantity : 0;
-                let quote_delivered = value?.delivered ? value?.delivered : 0;
                 let quote_free = value?.free ? value?.free : 0;
                 let quote_tax = value?.tax ? value?.tax : 0;
                 let quote_barcode = value?.barcode ? value?.barcode : "";
@@ -148,29 +145,24 @@ const create_quote = async (req, res) => {
 
                 let total_quantity =
                   parseFloat(quote_quantity) + parseFloat(quote_free);
-                quote_delivered =
-                  parseFloat(quote_delivered) <= parseFloat(total_quantity)
-                    ? quote_delivered
+                quote_quantity =
+                  parseFloat(quote_quantity) <= parseFloat(total_quantity)
+                    ? quote_quantity
                     : total_quantity;
                 purchase_price_per_unit =
                   parseFloat(total) / parseFloat(total_quantity);
-
-                //delivery status count
-                if (parseFloat(total_quantity) == parseFloat(quote_delivered)) {
-                  delivery_count++;
-                }
 
                 //quote order details
                 const quote_detail = new quotes_details({
                   quote: quote_save?._id,
                   description: selected_product?._id,
+                  summary: quote_summary,
                   name: selected_product?.name,
                   unit: quote_unit,
                   unit_name: quote_unit_name,
                   purchase_price: purchase_price,
                   conversion: quote_conversion,
                   quantity: quote_quantity,
-                  delivered: quote_delivered,
                   free: quote_free,
                   tax: quote_tax,
                   barcode: quote_barcode,
@@ -222,9 +214,7 @@ const create_quote = async (req, res) => {
                   : 0;
                 selected_quote.discount = quote_discount ? quote_discount : 0;
                 selected_quote.delivery = quote_delivery ? quote_delivery : 0;
-                selected_quote.delivery_status = delivery_status
-                  ? delivery_status
-                  : 0;
+
                 selected_quote.total = grand_total ? grand_total : 0;
 
                 const selected_quote_save = await selected_quote?.save();
@@ -245,67 +235,6 @@ const create_quote = async (req, res) => {
   } catch (errors) {
     catch_400(res, errors?.message);
   }
-};
-
-const fetchProducts = async (details) => {
-  const productIds = details.map((detail) => detail.description);
-  return products
-    .find({ _id: { $in: productIds } })
-    .populate({ path: "unit", match: { status: { $ne: 2 } } });
-};
-
-const calculateDetails = (detail, product, productUnitsDetails) => {
-  const {
-    purchase_price = 0,
-    quantity = 0,
-    tax = 0,
-    free = 0,
-    delivered = 0,
-    unit_details_options = [],
-  } = detail;
-
-  const totalQuantity = parseFloat(quantity || 0) + parseFloat(free || 0);
-  const price = parseFloat(quantity || 0) * parseFloat(purchase_price || 0);
-  const taxAmount = parseFloat(price || 0) * (parseFloat(tax) / 100);
-  const total = parseFloat(price || 0) + parseFloat(taxAmount || 0);
-
-  const isMainUnit = detail.unit === product._id.toString();
-
-  const inventoryProductUnit =
-    productUnitsDetails?.filter((unit) => detail.unit == unit?._id) || [];
-
-  const unitDetails = isMainUnit
-    ? unit_details_options.map((unit) => {
-        const conversion = parseFloat(unit?.conversion || 1);
-        return {
-          _id: unit?._id,
-          quote_detail: unit?.quote_detail,
-          name: unit?.name,
-          quantity: parseFloat(unit?.quantity || 0),
-          conversion: conversion,
-          purchase_price:
-            parseFloat(detail?.purchase_price || 0) /
-            parseFloat(purchase_price || 0),
-          price_per_unit:
-            parseFloat(detail?.price_per_unit || 0) /
-            parseFloat(conversion || 0),
-          sale_price: parseFloat(unit?.sale_price || 0) || 0,
-          unit_quantity: parseFloat(totalQuantity || 0) * conversion,
-          unit_delivered: parseFloat(delivered || 0) * conversion,
-        };
-      })
-    : inventoryProductUnit;
-
-  const quoteDetails = {
-    subtotal: price,
-    taxAmount,
-    total,
-    isFullyDelivered: parseFloat(delivered) >= totalQuantity,
-    isMainUnit,
-    unitDetails: unitDetails,
-  };
-
-  return quoteDetails;
 };
 
 const update_quote = async (req, res) => {
@@ -555,9 +484,7 @@ const get_all_quote_details = async (req, res) => {
           });
 
         selected_quote_detail.sort((a, b) => {
-          const dateA = new Date(a.quote?.date);
-          const dateB = new Date(b.quote?.date);
-          return dateB - dateA;
+          return a.quote?.sale_price - b.quote?.sale_price;
         });
 
         success_200(res, "", selected_quote_detail);

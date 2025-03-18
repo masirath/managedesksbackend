@@ -11,6 +11,10 @@ const quotes_details_schema = mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "products",
   },
+  quote_summary: {
+    required: false,
+    type: String,
+  },
   name: {
     required: true,
     type: String,
@@ -34,11 +38,6 @@ const quotes_details_schema = mongoose.Schema({
     default: 0,
   },
   conversion: {
-    required: true,
-    type: Number,
-    default: 0,
-  },
-  delivered: {
     required: true,
     type: Number,
     default: 0,

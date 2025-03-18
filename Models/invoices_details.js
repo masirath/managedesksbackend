@@ -15,6 +15,10 @@ const invoices_details_schema = mongoose.Schema({
     required: true,
     type: String,
   },
+  summary: {
+    required: false,
+    type: String,
+  },
   unit: {
     required: false,
     type: String,
