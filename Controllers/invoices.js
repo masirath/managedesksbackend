@@ -180,6 +180,7 @@ const create_invoice = async (req, res) => {
 
               if (selected_inventory) {
                 let invoice_unit = value?.unit ? value?.unit : "";
+                let invoice_summary = value?.summary ? value?.summary : "";
                 let invoice_unit_name = value?.unit_name
                   ? value?.unit_name
                   : "";
@@ -317,6 +318,7 @@ const create_invoice = async (req, res) => {
                   invoice: invoice_save?._id,
                   description: selected_inventory?._id,
                   name: selected_inventory?.product?.name,
+                  summary: invoice_summary,
                   unit: invoice_unit,
                   unit_name: invoice_unit_name,
                   sale_price: invoice_sale_price,
@@ -671,6 +673,7 @@ const update_invoice = async (req, res) => {
 
                 if (selected_inventory) {
                   let invoice_unit = value?.unit ? value?.unit : "";
+                  let invoice_summary = value?.summary ? value?.summary : "";
                   let invoice_unit_name = value?.unit_name
                     ? value?.unit_name
                     : "";
@@ -953,6 +956,7 @@ const update_invoice = async (req, res) => {
                       //update invoice details
                       selected_invoices_details.name =
                         selected_inventory?.product?.name;
+                      selected_invoices_details.summary = invoice_summary;
                       selected_invoices_details.unit = invoice_unit;
                       selected_invoices_details.unit_name = invoice_unit_name;
                       selected_invoices_details.sale_price = invoice_sale_price;
@@ -1063,6 +1067,7 @@ const update_invoice = async (req, res) => {
                       invoice: selected_invoice?._id,
                       description: selected_inventory?._id,
                       name: selected_inventory?.product?.name,
+                      summary: invoice_summary,
                       unit: invoice_unit,
                       unit_name: invoice_unit_name,
                       sale_price: invoice_sale_price,
