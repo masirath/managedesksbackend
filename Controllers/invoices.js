@@ -622,7 +622,7 @@ const update_invoice = async (req, res) => {
         !id ||
         !assigned_number ||
         !date ||
-        !due_date ||
+        // !due_date ||
         !details?.length > 0
       ) {
         incomplete_400(res);
@@ -679,15 +679,16 @@ const update_invoice = async (req, res) => {
                   let invoice_unit_name = value?.unit_name
                     ? value?.unit_name
                     : "";
-                  let invoice_sale_price =
-                    selected_inventory?._id == value?.unit
-                      ? selected_inventory?.sale_price
-                        ? selected_inventory?.sale_price
-                        : 0
-                      : selected_unit?.sale_price
-                      ? selected_unit?.sale_price
-                      : // : 0;
-                        selected_inventory?.sale_price;
+                  let invoice_sale_price = value?.sale_price
+                    ? value?.sale_price
+                    : 0;
+                  // selected_inventory?._id == value?.unit
+                  //   ? selected_inventory?.sale_price
+                  //     ? selected_inventory?.sale_price
+                  //     : 0
+                  //   : selected_unit?.sale_price
+                  //   ? selected_unit?.sale_price
+                  //   : selected_inventory?.sale_price;
                   let invoice_purchase_price =
                     selected_inventory?._id == value?.unit
                       ? selected_inventory?.purchase_price
