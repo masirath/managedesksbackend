@@ -1,3 +1,5 @@
+//Routes/generalLedger.js
+
 const express = require("express");
 const { getBalances, getAllTransactions } = require("../Controllers/generalLedger");
 

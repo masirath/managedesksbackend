@@ -1,6 +1,9 @@
 const ManualJournal = require("../Models/ManualJournal");
 const GeneralLedger = require("../Models/GeneralLedger")
 const ChartOfAccounts = require("../Models/Account")
+const { generateBalanceSheet } = require("../services/balanceSheetService");
+
+
 const {
   success_200,
   failed_400,
@@ -160,7 +163,7 @@ const create_manual_journal = async (req, res) => {
         credit: creditAmount,
         balance: newBalance,
         date: newJournalEntry.date,
-        description: `${newJournalEntry.description} | ${entry.description || ''}`.trim(),
+        description: [newJournalEntry.description, entry.description].filter(Boolean).join(" | "),
         reference: entry.reference,
         documentRef: documents[0]?.url, // Reference first document if exists
         created_by: authorize.id
@@ -168,12 +171,20 @@ const create_manual_journal = async (req, res) => {
       
       await ledgerEntry.save();
       ledgerEntries.push(ledgerEntry);
-
+      
+       // In your journal entry controller after saving entries:
+      await ChartOfAccounts.updateBalances(journalEntry); 
       // Update account balance
       accountDetails.balance = newBalance;
       await accountDetails.save();
     }
-
+ // Step 3: Auto-generate balance sheet after successful journal entry
+ try {
+  await generateBalanceSheet(new Date());
+} catch (balanceSheetError) {
+  console.error("Balance sheet generation failed:", balanceSheetError);
+  // Don't fail the whole request, just log the error
+}
     return success_200(res, "Journal entry created successfully", {
       journalEntry: newJournalEntry,
       ledgerEntries,
@@ -200,15 +211,28 @@ const create_manual_journal = async (req, res) => {
 
 const get_all_manual_journals = async (req, res) => {
   try {
+    // 1. Authorization Check
     const authorize = authorization(req);
     if (!authorize) return unauthorized(res);
 
-    const { page = 1, limit = 10, search, status, startDate, endDate } = req.query;
+    // 2. Debug: Log the request query (for troubleshooting)
+    console.log("Request Query:", req.query);
 
-    // Build the query
+    // 3. Pagination Setup (with safeguards)
+    let page = parseInt(req.query.page) || 1;
+    let limit = parseInt(req.query.limit) || 10;
+    limit = Math.min(limit, 100); // Cap at 100 per page
+    page = Math.max(page, 1); // Ensure page >= 1
+
+    // 4. Extract and sanitize filters
+    const { branch, search, status, startDate, endDate } = req.query;
+
+    // 5. Base Query: Restrict to user's entries
     const query = { created_by: authorize.id };
 
-    // Search by description or entryId
+    // 6. Apply Filters (if provided)
+    if (branch) query.branch = branch;
+
     if (search) {
       query.$or = [
         { description: { $regex: search, $options: "i" } },
@@ -216,12 +240,10 @@ const get_all_manual_journals = async (req, res) => {
       ];
     }
 
-    // Filter by status
     if (status) {
       query["approval.status"] = status;
     }
- 
-    // Filter by date range
+
     if (startDate && endDate) {
       query.date = {
         $gte: new Date(startDate),
@@ -229,25 +251,43 @@ const get_all_manual_journals = async (req, res) => {
       };
     }
 
-    // Pagination
-    const totalEntries = await ManualJournal.countDocuments(query);
-    const totalPages = Math.ceil(totalEntries / limit);
+    // 7. Debug: Log the final query (critical for troubleshooting)
+    console.log("Final MongoDB Query:", JSON.stringify(query, null, 2));
 
-    const journalEntries = await ManualJournal.find(query)
-      .limit(limit)
-      .skip((page - 1) * limit)
-      .sort({ createdAt: -1 });
+    // 8. Fetch Data (with error handling for empty results)
+    const [totalCount, journalEntries] = await Promise.all([
+      ManualJournal.countDocuments(query),
+      ManualJournal.find(query)
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .populate("entries.account", "name code")
+        .sort({ createdAt: -1 })
+        .lean(), // Use .lean() for faster plain JS objects
+    ]);
 
-    return success_200(res, "Manual journal entries retrieved successfully", {
+    // 9. Debug: Log the count and sample data
+    console.log(`Total documents found: ${totalCount}`);
+    if (journalEntries.length > 0) {
+      console.log("Sample document:", journalEntries[0]);
+    } else {
+      console.warn("No documents matched the query.");
+    }
+
+    // 10. Return Response
+    return res.status(200).json({
+      success: true,
+      message: "Manual journal entries retrieved successfully",
       data: journalEntries,
-      pagination: {
-        totalEntries,
-        totalPages,
+      meta: {
+        totalCount,
         currentPage: page,
-        limit,
+        totalPages: Math.ceil(totalCount / limit),
+        pageSize: limit,
       },
     });
+
   } catch (error) {
+    console.error("Error in get_all_manual_journals:", error);
     return catch_400(res, error.message);
   }
 };
@@ -263,8 +303,9 @@ const get_manual_journal = async (req, res) => {
     const { id } = req.params;
     if (!id) return incomplete_400(res, "Journal entry ID is required");
 
-    const journalEntry = await ManualJournal.findById(id);
-
+    const journalEntry = await ManualJournal.findById(id)
+    .populate("entries.account", "name code"); 
+   
     if (!journalEntry || journalEntry.created_by.toString() !== authorize.id) {
       return failed_400(res, "Manual journal entry not found or unauthorized access");
     }
@@ -278,38 +319,38 @@ const get_manual_journal = async (req, res) => {
 /**
  * Update a manual journal entry by ID.
  */
-const update_manual_journal = async (req, res) => {
-  try {
-    const authorize = authorization(req);
-    if (!authorize) return unauthorized(res);
+// const update_manual_journal = async (req, res) => {
+//   try {
+//     const authorize = authorization(req);
+//     if (!authorize) return unauthorized(res);
 
-    const { id } = req.params;
-    const { description, debits, credits } = req.body;
+//     const { id } = req.params;
+//     const { description, debits, credits } = req.body;
 
-    // Validate required fields
-    if (!description || !debits || !credits) {
-      return incomplete_400(res, "Description, debits, and credits are required");
-    }
+//     // Validate required fields
+//     if (!description || !debits || !credits) {
+//       return incomplete_400(res, "Description, debits, and credits are required");
+//     }
 
-    // Validate journal entry
-    const validation = validateJournalEntry(debits, credits);
-    if (!validation.valid) return failed_400(res, validation.message);
+//     // Validate journal entry
+//     const validation = validateJournalEntry(debits, credits);
+//     if (!validation.valid) return failed_400(res, validation.message);
 
-    const updatedJournalEntry = await ManualJournal.findOneAndUpdate(
-      { _id: id, created_by: authorize.id }, // Ensure only the creator can update
-      { description, debits, credits },
-      { new: true, runValidators: true }
-    );
+//     const updatedJournalEntry = await ManualJournal.findOneAndUpdate(
+//       { _id: id, created_by: authorize.id }, // Ensure only the creator can update
+//       { description, debits, credits },
+//       { new: true, runValidators: true }
+//     );
 
-    if (!updatedJournalEntry) {
-      return failed_400(res, "Manual journal entry not found or unauthorized access");
-    }
+//     if (!updatedJournalEntry) {
+//       return failed_400(res, "Manual journal entry not found or unauthorized access");
+//     }
 
-    return success_200(res, "Manual journal entry updated successfully", updatedJournalEntry);
-  } catch (error) {
-    return catch_400(res, error.message);
-  }
-};
+//     return success_200(res, "Manual journal entry updated successfully", updatedJournalEntry);
+//   } catch (error) {
+//     return catch_400(res, error.message);
+//   }
+// };
 
 /**
  * Delete a manual journal entry by ID.
@@ -338,6 +379,6 @@ module.exports = {
   create_manual_journal,
   get_all_manual_journals,
   get_manual_journal,
-  update_manual_journal,
+  // update_manual_journal,
   delete_manual_journal,
 };

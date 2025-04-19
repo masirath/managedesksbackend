@@ -21,6 +21,7 @@ const accountTypes = [
   "Equity",
   "Direct Costs",
   "Expense",
+  "Income",
   "Other Income",
   "Revenue",
   "Sales",
@@ -36,12 +37,67 @@ const accountCategories = ["Assets", "Liabilities", "Equity", "Expenses", "Incom
  * @param {Object} req - The request object.
  * @param {Object} res - The response object.
  */
+// const create_account = async (req, res) => {
+//   try {
+//     const authorize = authorization(req);
+//     if (!authorize) return unauthorized(res);
+
+//     const { name, code, type, category, branch, description, currency, status } = req.body;
+
+//     // Validate required fields
+//     if (!name || !code || !type || !category) {
+//       return incomplete_400(res, "Name, code, type, and category are required");
+//     }
+
+//     // Validate account type and category
+//     if (!accountTypes.includes(type)) {
+//       return failed_400(res, "Invalid account type");
+//     }
+//     if (!accountCategories.includes(category)) {
+//       return failed_400(res, "Invalid account category");
+//     }
+
+//     // Check for existing account with the same code or name
+//     const existingAccount = await Account.findOne({
+//       $or: [{ code }, { name }],
+//       branch: branch || authorize.branch,
+//     });
+
+//     if (existingAccount) {
+//       return failed_400(res, "Account with this code or name already exists");
+//     }
+
+//     // Create new account
+//     const account = new Account({
+//       name,
+//       code,
+//       type,
+//       category,
+//       balance: 0,
+//       branch: branch || authorize.branch,
+//       description: description || "",
+//       currency: currency || "OMR",
+//       status: status || "Active",
+//       createdBy: authorize.id,
+//     });
+
+//     const newAccount = await account.save();
+
+//     return res.status(201).json({
+//       success: true,
+//       message: "Account created successfully",
+//       data: newAccount,
+//     });
+//   } catch (error) {
+//     return catch_400(res, error.message);
+//   }
+// };
 const create_account = async (req, res) => {
   try {
     const authorize = authorization(req);
     if (!authorize) return unauthorized(res);
 
-    const { name, code, type, category, branch, description, currency, status } = req.body;
+    const { name, code, type, category, branch, description, currency, status, parentAccount, isReceivable, isPayable } = req.body;
 
     // Validate required fields
     if (!name || !code || !type || !category) {
@@ -54,6 +110,22 @@ const create_account = async (req, res) => {
     }
     if (!accountCategories.includes(category)) {
       return failed_400(res, "Invalid account category");
+    }
+
+    // Validate isReceivable and isPayable are booleans
+    if (isReceivable !== undefined && typeof isReceivable !== 'boolean') {
+      return failed_400(res, "isReceivable must be a boolean");
+    }
+    if (isPayable !== undefined && typeof isPayable !== 'boolean') {
+      return failed_400(res, "isPayable must be a boolean");
+    }
+
+    // If parentAccount is provided, validate it exists
+    if (parentAccount) {
+      const parentAccountExists = await Account.findById(parentAccount);
+      if (!parentAccountExists) {
+        return failed_400(res, "Parent account does not exist");
+      }
     }
 
     // Check for existing account with the same code or name
@@ -77,6 +149,9 @@ const create_account = async (req, res) => {
       description: description || "",
       currency: currency || "OMR",
       status: status || "Active",
+      parentAccount: parentAccount || null, // Ensure parentAccount is optional
+      isReceivable: isReceivable || false, // Default to false if not provided
+      isPayable: isPayable || false, // Default to false if not provided
       createdBy: authorize.id,
     });
 
@@ -91,6 +166,9 @@ const create_account = async (req, res) => {
     return catch_400(res, error.message);
   }
 };
+
+
+//end create chart of account with payable , receivable, account
 
 /**
  * Get a single account by ID.
@@ -126,26 +204,68 @@ const get_account = async (req, res) => {
  * @param {Object} req - The request object.
  * @param {Object} res - The response object.
  */
+// const get_all_accounts = async (req, res) => {
+//   try {
+//     const authorize = authorization(req);
+//     if (!authorize) return unauthorized(res);
+
+//     const { branch, type, category, page = 1, limit = 10 } = req.query;
+
+//     const filter = { status: { $ne: 2 } };
+//     if (branch) filter.branch = branch;
+//     if (type) filter.type = type;
+//     if (category) filter.category = category;
+
+//     const accounts = await Account.find(filter)
+//       .limit(limit * 1)
+//       .skip((page - 1) * limit);
+
+//     return res.status(200).json({
+//       success: true,
+//       message: "Accounts retrieved successfully",
+//       data: accounts,
+//     });
+//   } catch (error) {
+//     return catch_400(res, error.message);
+//   }
+// };
 const get_all_accounts = async (req, res) => {
   try {
     const authorize = authorization(req);
     if (!authorize) return unauthorized(res);
 
-    const { branch, type, category, page = 1, limit = 10 } = req.query;
+    // Parse and sanitize pagination values
+    let page = parseInt(req.query.page) || 1;
+    let limit = parseInt(req.query.limit) || 10;
+
+    // Prevent abuse: limit max per page
+    limit = Math.min(limit, 100); // cap at 100 max
+    page = Math.max(page, 1); // page must be >= 1
+
+    const { branch, type, category } = req.query;
 
     const filter = { status: { $ne: 2 } };
     if (branch) filter.branch = branch;
     if (type) filter.type = type;
     if (category) filter.category = category;
 
+    const totalCount = await Account.countDocuments(filter);
+    const totalPages = Math.ceil(totalCount / limit);
+
     const accounts = await Account.find(filter)
-      .limit(limit * 1)
-      .skip((page - 1) * limit);
+      .skip((page - 1) * limit)
+      .limit(limit);
 
     return res.status(200).json({
       success: true,
       message: "Accounts retrieved successfully",
       data: accounts,
+      meta: {
+        totalCount,
+        currentPage: page,
+        totalPages,
+        pageSize: limit,
+      },
     });
   } catch (error) {
     return catch_400(res, error.message);

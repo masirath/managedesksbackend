@@ -32,6 +32,11 @@ const approvalWorkflow = require("./Routes/approvalWorkflow")
 const generalLedgerRoutes = require("./Routes/generalLedger");
 const Environment = environment();
 const uploadRoutes = require('./Routes/uploads')
+const balanceSheetRoutes = require("./Routes/balanceSheetRoutes")
+const ProfitLossRoutes = require("./Routes/ProfitLossRoutes")
+const TrialBalanceRoutes = require("./Routes/trialBalanceRoutes")
+const generalLedgerSummary = require("./Routes/generalledgerSummary")
+
 const path = require('path');
 
 const PORT =
@@ -75,6 +80,49 @@ database.once("connected", () => {
 });
 
 const app = express();
+const allRoutes = {
+  users,
+  product_units,
+  product_brands,
+  product_categories,
+  products,
+  customers,
+  suppliers,
+  expenses,
+  expense_categories,
+  inventories,
+  purchase_orders,
+  invoices,
+  branches,
+  dashboard,
+  sales_returns,
+  purchases_returns,
+  roles,
+  requests,
+  transfers,
+  received,
+  quotes,
+  accountRoutes,
+  manualJournals,
+  recurringEntry,
+  entryTemplate,
+  approvalWorkflow,
+  generalLedgerRoutes,
+  uploadRoutes,
+  balanceSheetRoutes,
+  ProfitLossRoutes,
+  TrialBalanceRoutes,
+  generalLedgerSummary
+};
+
+for (const [name, route] of Object.entries(allRoutes)) {
+  if (typeof route !== 'function' || !route.stack) {
+    console.error(`❌ ${name} is NOT a valid Express router`);
+  } else {
+    console.log(`✅ ${name} loaded`);
+  }
+}
+
 app.use(cors());
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
@@ -113,6 +161,10 @@ app.use(approvalWorkflow)
 // app.use("/api/ledger", generalLedgerRoutes);
 app.use("/api", generalLedgerRoutes);
 app.use('/api/uploads', uploadRoutes )
+app.use("/api", balanceSheetRoutes)
+app.use("/api", ProfitLossRoutes)
+app.use("/api", TrialBalanceRoutes)
+app.use("/ledger-summary", generalLedgerSummary)
 
 app.listen(PORT, () => {
   console.log(`Server started at ${PORT}`);

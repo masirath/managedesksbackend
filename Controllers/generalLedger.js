@@ -76,6 +76,85 @@ const getAllTransactions = async (req, res) => {
     return catch_400(res, error.message);
   }
 };
+// const getAllTransactions = async (req, res) => {
+//   try {
+//     const authorize = authorization(req);
+//     if (!authorize) {
+//       console.log("Unauthorized request detected");
+//       return unauthorized(res);
+//     }
+
+//     // Extract and sanitize query parameters
+//     let {
+//       account_code,
+//       start_date,
+//       end_date,
+//       page,
+//       limit,
+//       sort,
+//       search = "",
+//     } = req.query;
+
+//     page = parseInt(page) || 1;
+//     limit = parseInt(limit) || 10;
+//     const skip = (page - 1) * limit;
+
+//     const filter = {};
+
+//     // Validate and apply account_code filter
+//     if (account_code) {
+//       filter.account_code = parseInt(account_code);
+//       if (isNaN(filter.account_code)) {
+//         return failed_400(res, "Invalid account_code provided.");
+//       }
+//     }
+
+//     // Apply date filter
+//     if (start_date && end_date) {
+//       const start = new Date(start_date);
+//       const end = new Date(end_date);
+//       if (isNaN(start) || isNaN(end)) {
+//         return failed_400(res, "Invalid date format provided.");
+//       }
+//       filter.date = { $gte: start, $lte: end };
+//     }
+
+//     // Build the base query
+//     let query = GeneralLedger.find(filter)
+//       .populate("journalEntryId", "description")
+//       .populate("account", "account_name balance");
+
+//     // Apply sorting
+//     const sortOptions = sort === "oldest" ? { date: 1 } : { date: -1 };
+//     query = query.sort(sortOptions).skip(skip).limit(limit).lean();
+
+//     let transactions = await query;
+
+//     // Handle in-memory filtering for search term (can be optimized with aggregation)
+//     if (search.trim() !== "") {
+//       const regex = new RegExp(search.trim(), "i");
+//       transactions = transactions.filter((entry) => {
+//         const accountMatch = entry.account?.account_name?.match(regex);
+//         const descMatch = entry.journalEntryId?.description?.match(regex);
+//         return accountMatch || descMatch;
+//       });
+//     }
+
+//     // Pagination after in-memory filter
+//     const paginated = transactions.slice(0, limit);
+//     const totalTransactions = transactions.length;
+
+//     return success_200(res, "General Ledger transactions retrieved successfully", {
+//       totalTransactions,
+//       page,
+//       totalPages: Math.ceil(totalTransactions / limit),
+//       transactions: paginated,
+//     });
+//   } catch (error) {
+//     console.error("Error fetching transactions:", error);
+//     return catch_400(res, error.message);
+//   }
+// };
 
 /**
  * Fetch All Account Balances

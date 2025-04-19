@@ -1,17 +1,5 @@
 const mongoose = require("mongoose");
 
-// const GeneralLedgerSchema = new mongoose.Schema({
-//   journalEntryId: { type: mongoose.Schema.Types.ObjectId, ref: "ManualJournal", required: true }, // Reference to the ManualJournal entry
-//   account: { type: mongoose.Schema.Types.ObjectId, ref: "Account", required: true }, // Reference to the Account model
-//   debit: { type: Number, default: 0 }, // Debit amount
-//   credit: { type: Number, default: 0 }, // Credit amount
-//   balance: { type: Number, default: 0 }, // Running balance for the account
-//   date: { type: Date, default: Date.now }, // Date of the transaction
-//   createdAt: { type: Date, default: Date.now }, // Timestamp of creation
-// });
-
-
-
 const GeneralLedgerSchema = new mongoose.Schema({
   date: { type: Date, default: Date.now }, // Date of the transaction
   account_code: { type: String, required: true }, // Account code from the Chart of Accounts
