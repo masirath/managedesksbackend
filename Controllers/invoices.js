@@ -84,6 +84,8 @@ const create_invoice = async (req, res) => {
   try {
     const authorize = authorization(req);
 
+    //console.log(authorize,"authorize")
+
     if (authorize) {
       const {
         customer,
