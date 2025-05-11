@@ -116,9 +116,9 @@ const allRoutes = {
 
 for (const [name, route] of Object.entries(allRoutes)) {
   if (typeof route !== "function" || !route.stack) {
-    console.error(`❌ ${name} is NOT a valid Express router`);
+    // console.error(`❌ ${name} is NOT a valid Express router`);
   } else {
-    console.log(`✅ ${name} loaded`);
+    // console.log(`✅ ${name} loaded`);
   }
 }
 
@@ -167,5 +167,5 @@ app.use("/ledger-summary", generalLedgerSummary);
 
 app.listen(PORT, () => {
   console.log(`Server started at ${PORT}`);
-  console.log(`Uploads directory: ${path.join(__dirname, "uploads")}`);
+  // console.log(`Uploads directory: ${path.join(__dirname, "uploads")}`);
 });
