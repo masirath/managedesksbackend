@@ -3,7 +3,6 @@ const GeneralLedger = require("../Models/GeneralLedger")
 const ChartOfAccounts = require("../Models/Account")
 const { generateBalanceSheet } = require("../services/balanceSheetService");
 
-
 const {
   success_200,
   failed_400,
@@ -38,7 +37,6 @@ const validateJournalEntry = (entries) => {
 
 const validateAccountTypes = async (entries) => {
   const invalidEntries = [];
-
   for (const entry of entries) {
     const account = await ChartOfAccounts.findById(entry.account);
     if (!account) {
@@ -46,22 +44,32 @@ const validateAccountTypes = async (entries) => {
       continue;
     }
 
-    // OPTIONAL: You can still warn if the entry is uncommon (not invalid)
-    if (entry.type === 'debit' && ["Liabilities", "Equity", "Income"].includes(account.category)) {
-      invalidEntries.push(`Cannot debit ${account.category} account: ${account.name}`);
+    // Allow contra accounts to behave inversely
+    if (account.isContraAccount) {
+      if (
+        (entry.type === 'debit' && ["Liabilities", "Equity", "Income"].includes(account.category)) ||
+        (entry.type === 'credit' && ["Assets", "Expenses"].includes(account.category))
+      ) {
+        continue; // Valid contra behavior
+      } else {
+        invalidEntries.push(`Invalid contra entry type for account: ${account.name}`);
+      }
     }
-
-    // ❌ REMOVE this block — it's not valid accounting logic
-    // if (entry.type === 'credit' && ["Assets", "Expenses"].includes(account.category)) {
-    //   invalidEntries.push(`Cannot credit ${account.category} account: ${account.name}`);
-    // }
+    // Validate normal accounts
+    else {
+      const valid = 
+        (entry.type === 'debit' && ["Assets", "Expenses"].includes(account.category)) ||
+        (entry.type === 'credit' && ["Liabilities", "Equity", "Income"].includes(account.category));
+      
+      if (!valid) {
+        invalidEntries.push(`Invalid entry type for account: ${account.name}`);
+      }
+    }
   }
-
-  return invalidEntries.length === 0 
+  return invalidEntries.length === 0
     ? { valid: true }
     : { valid: false, messages: invalidEntries };
 };
-
 
 const create_manual_journal = async (req, res) => {
   try {
@@ -71,12 +79,11 @@ const create_manual_journal = async (req, res) => {
     // Debug received data
     console.log('Received data:', req.body);
 
-    const { date, description, documents = [], entries, referenceNumber } = req.body;
+    const { date, description, documents = [], entries, referenceNumber, contraEntry } = req.body;
 
     // Validate required fields
     const requiredFields = ['date', 'description', 'entries', 'referenceNumber'];
     const missingFields = requiredFields.filter(field => !req.body[field]);
-    
     if (missingFields.length > 0) {
       return res.status(400).json({
         success: false,
@@ -98,6 +105,26 @@ const create_manual_journal = async (req, res) => {
       return failed_400(res, accountValidation.messages.join(", "));
     }
 
+   // Validate contra entry (if applicable)
+   if (contraEntry?.isContra) {
+    const bankAccount = await ChartOfAccounts.findById(contraEntry.bankAccountId);
+    const cashAccount = await ChartOfAccounts.findById(contraEntry.cashAccountId);
+  
+    if (!bankAccount || !cashAccount) {
+      return failed_400(res, "Invalid Bank/Cash accounts for contra entry");
+    }
+  
+    if (bankAccount.category !== "Assets" || cashAccount.category !== "Assets") {
+      return failed_400(res, "Both accounts must be Assets for bank-to-cash/cash-to-bank contra entries");
+    }
+  
+    // Optional: Validate that one account is a Bank Account and the other is a Cash Account
+    const validAccountTypes = ["Bank & Cash", "Current Asset"];
+    if (!validAccountTypes.includes(bankAccount.type) || !validAccountTypes.includes(cashAccount.type)) {
+      return failed_400(res, "One account must be a Bank Account and the other must be a Cash Account");
+    }
+  }
+  
     // Create new journal entry
     const journalData = {
       date,
@@ -111,27 +138,27 @@ const create_manual_journal = async (req, res) => {
         reference: entry.reference || `${entry.type === 'debit' ? 'DR' : 'CR'}-${referenceNumber}`,
         description: entry.description || ''
       })),
+      contraEntry: contraEntry || undefined,
       status: 'posted',
       created_by: authorize?.id, 
     };
 
     const journalEntry = new ManualJournal(journalData);
     const newJournalEntry = await journalEntry.save();
-    const ledgerEntries = [];
 
     // Process ledger entries
+    const ledgerEntries = [];
     for (const entry of newJournalEntry.entries) {
       const accountDetails = await ChartOfAccounts.findById(entry.account);
       if (!accountDetails) {
         return failed_400(res, `Invalid account: ${entry.account}`);
       }
 
-      const lastEntry = await GeneralLedger.findOne({ account: entry.account })
-        .sort({ createdAt: -1 });
-      
+      const lastEntry = await GeneralLedger.findOne({ account: entry.account }).sort({ createdAt: -1 });
       const currentBalance = lastEntry ? lastEntry.balance : 0;
-      let newBalance, debitAmount = 0, creditAmount = 0;
 
+
+      let newBalance, debitAmount = 0, creditAmount = 0;
       if (entry.type === 'debit') {
         debitAmount = entry.amount;
         if (["Assets", "Expenses"].includes(accountDetails.category)) {
@@ -174,10 +201,13 @@ const create_manual_journal = async (req, res) => {
       
        // In your journal entry controller after saving entries:
       await ChartOfAccounts.updateBalances(journalEntry); 
+
       // Update account balance
       accountDetails.balance = newBalance;
       await accountDetails.save();
     }
+
+
  // Step 3: Auto-generate balance sheet after successful journal entry
  try {
   await generateBalanceSheet(new Date());
@@ -375,10 +405,117 @@ const delete_manual_journal = async (req, res) => {
   }
 };
 
+
+/**
+ * Create a contra entry (offset AR/AP balances).
+ */
+const create_contra_entry = async (req, res) => {
+  try {
+    // Step 1: Authorization Check
+    const authorize = authorization(req);
+    if (!authorize) return unauthorized(res);
+
+    // Step 2: Extract Payload Data
+    const { arAccountId, apAccountId, amount, description } = req.body;
+
+    // Step 3: Validate Required Fields
+    if (!arAccountId || !apAccountId || !amount) {
+      return incomplete_400(res, "Missing required fields: arAccountId, apAccountId, or amount");
+    }
+
+    // Step 4: Fetch AR/AP Accounts
+    const arAccount = await ChartOfAccounts.findById(arAccountId);
+    const apAccount = await ChartOfAccounts.findById(apAccountId);
+
+    if (!arAccount || !apAccount) {
+      return failed_400(res, "Invalid AR/AP accounts for contra entry");
+    }
+
+    // Step 5: Validate Counterparty Match
+    if (arAccount.contact.toString() !== apAccount.contact.toString()) {
+      return failed_400(res, "AR and AP accounts must belong to the same counterparty");
+    }
+
+    // Step 6: Validate Account Categories
+    if (arAccount.category !== "Assets" || apAccount.category !== "Liabilities") {
+      return failed_400(res, "AR must be an Asset, AP must be a Liability");
+    }
+
+    // Step 7: Create Journal Entry Data
+    const journalData = {
+      date: new Date(),
+      description: description || "Contra Entry",
+      referenceNumber: `CONTRA-${Date.now()}`,
+      entries: [
+        {
+          account: apAccountId,
+          amount: amount,
+          type: "debit", // Reduce AP (Liability)
+        },
+        {
+          account: arAccountId,
+          amount: amount,
+          type: "credit", // Reduce AR (Asset)
+        },
+      ],
+      contraEntry: {
+        isContra: true,
+        arAccountId,
+        apAccountId,
+      },
+      status: 'posted',
+      created_by: authorize?.id, // Link to authorized user
+    };
+
+    // Step 8: Call `create_manual_journal` to Save the Entry
+    const response = await create_manual_journal({ body: journalData });
+    return res.status(response.status).json(response);
+  } catch (error) {
+    console.error("Error creating contra entry:", error);
+    return catch_400(res, error.message);
+  }
+};
+
+/**
+ * Get net balance for a specific counterparty.
+ */
+const get_contra_balance = async (req, res) => {
+  try {
+    // Step 1: Authorization Check
+    const authorize = authorization(req);
+    if (!authorize) return unauthorized(res);
+
+    // Step 2: Extract Contact ID
+    const { contactId } = req.params;
+
+    // Step 3: Fetch AR and AP Balances
+    const arAccount = await ChartOfAccounts.findOne({
+      contact: contactId,
+      category: "Assets",
+    }).select("balance");
+
+    const apAccount = await ChartOfAccounts.findOne({
+      contact: contactId,
+      category: "Liabilities",
+    }).select("balance");
+
+    // Step 4: Calculate Net Balance
+    const netBalance = (arAccount?.balance || 0) - (apAccount?.balance || 0);
+
+    // Step 5: Return Response
+    return success_200(res, "Net balance retrieved successfully", { netBalance });
+  } catch (error) {
+    console.error("Error fetching contra balance:", error);
+    return catch_400(res, error.message);
+  }
+};
+
 module.exports = {
   create_manual_journal,
   get_all_manual_journals,
   get_manual_journal,
   // update_manual_journal,
   delete_manual_journal,
+  create_contra_entry, // Add this
+  get_contra_balance,
 };

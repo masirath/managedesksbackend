@@ -21,6 +21,10 @@ const purchase_orders_payments_log = require("../Models/purchase_orders_payments
 const purchase_orders_units_details_log = require("../Models/purchase_orders_units_details_log");
 const inventories_log = require("../Models/inventories_log");
 const inventories_units_details_log = require("../Models/inventories_units_details_log");
+// Add these to your existing requires
+const ManualJournal = require("../Models/ManualJournal");
+const Account = require("../Models/Account");
+
 const { default: mongoose } = require("mongoose");
 
 const get_next_purchase_order = async (req, res, number) => {
@@ -243,17 +247,17 @@ const create_purchase_order = async (req, res) => {
                             : 0,
                           price_per_unit: purchase_price_per_unit
                             ? parseFloat(purchase_price_per_unit) /
-                              parseFloat(v?.conversion)
+                            parseFloat(v?.conversion)
                             : 0,
                           conversion: v?.conversion ? v?.conversion : 0,
                           sale_price: v?.sale_price ? v?.sale_price : 0,
                           unit_quantity: total_quantity
                             ? parseFloat(v?.conversion) *
-                              parseFloat(total_quantity)
+                            parseFloat(total_quantity)
                             : 0,
                           unit_delivered: purchase_delivered
                             ? parseFloat(v?.conversion) *
-                              parseFloat(purchase_delivered)
+                            parseFloat(purchase_delivered)
                             : 0,
                         };
                       })
@@ -274,8 +278,8 @@ const create_purchase_order = async (req, res) => {
                       if (
                         purchase_conversion &&
                         parseFloat(purchase_quantity) +
-                          parseFloat(purchase_free) >=
-                          purchase_conversion
+                        parseFloat(purchase_free) >=
+                        purchase_conversion
                       ) {
                         purchase_conversion =
                           parseFloat(purchase_conversion) - 1;
@@ -573,49 +577,91 @@ const create_purchase_order = async (req, res) => {
 
                     const purchase_order_payment_save =
                       await purchase_order_payment?.save();
-                  }
+
+                    // ManualJournal entry: Add create the journal entry.
+                    // ===== ADD ACCOUNTING INTEGRATION HERE =====
+                    try {
+                      // Get accounts
+                      const [payableAccount, cashAccount] = await Promise.all([
+                        Account.findOne({ isPayable: true, branch: branch || authorize.branch }),
+                        Account.findOne({ type: "Bank & Cash", branch: branch || authorize.branch })
+                      ]);
+
+                      if (!payableAccount || !cashAccount) {
+                        throw new Error("Accounting accounts not configured");
+                      }
+
+                      // Create journal entry
+                      await new ManualJournal({
+                        date: new Date(),
+                        description: `Payment for PO ${purchase_order_save.number}`,
+                        entries: [
+                          {
+                            account: payableAccount._id,
+                            type: "debit",
+                            amount: value.amount
+                          },
+                          {
+                            account: cashAccount._id,
+                            type: "credit",
+                            amount: value.amount
+                          }
+                        ],
+                        referenceNumber: `PAY-${purchase_order_payment_save._id}`,
+                        branch: branch || authorize.branch,
+                        created_by: authorize.id
+                      }).save();
+
+                    } catch (error) {
+                      console.error("Accounting integration failed:", error.message);
+                      // Rollback payment if needed
+                      await purchase_orders_payments.findByIdAndDelete(purchase_order_payment_save._id);
+                      throw error; // This will trigger the main catch block
+                    }
+        //end here of the above journal entry
                 }
-
-                selected_purchase_order.subtotal = purchase_subtotal
-                  ? purchase_subtotal
-                  : 0;
-                selected_purchase_order.taxamount = purchase_taxamount
-                  ? purchase_taxamount
-                  : 0;
-                selected_purchase_order.discount = purchase_discount
-                  ? purchase_discount
-                  : 0;
-                selected_purchase_order.delivery = purchase_delivery
-                  ? purchase_delivery
-                  : 0;
-                selected_purchase_order.delivery_status = data_delivery_status
-                  ? data_delivery_status
-                  : 0;
-                selected_purchase_order.delivery_date = data_delivery_date;
-                selected_purchase_order.payment_status = data_payment_status
-                  ? data_payment_status
-                  : 0;
-                selected_purchase_order.total = grand_total ? grand_total : 0;
-
-                const selected_purchase_order_save =
-                  await selected_purchase_order?.save();
-
-                success_200(res, "Purchase order created");
-              } else {
-                failed_400("Purchase not found");
               }
+
+              selected_purchase_order.subtotal = purchase_subtotal
+                ? purchase_subtotal
+                : 0;
+              selected_purchase_order.taxamount = purchase_taxamount
+                ? purchase_taxamount
+                : 0;
+              selected_purchase_order.discount = purchase_discount
+                ? purchase_discount
+                : 0;
+              selected_purchase_order.delivery = purchase_delivery
+                ? purchase_delivery
+                : 0;
+              selected_purchase_order.delivery_status = data_delivery_status
+                ? data_delivery_status
+                : 0;
+              selected_purchase_order.delivery_date = data_delivery_date;
+              selected_purchase_order.payment_status = data_payment_status
+                ? data_payment_status
+                : 0;
+              selected_purchase_order.total = grand_total ? grand_total : 0;
+
+              const selected_purchase_order_save =
+                await selected_purchase_order?.save();
+
+              success_200(res, "Purchase order created");
             } else {
-              failed_400(res, "Purchase failed");
+              failed_400("Purchase not found");
             }
           } else {
-            failed_400(res, "Details missing");
+            failed_400(res, "Purchase failed");
           }
+        } else {
+          failed_400(res, "Details missing");
         }
       }
     }
-  } catch (errors) {
-    catch_400(res, errors?.message);
   }
+  } catch (errors) {
+  catch_400(res, errors?.message);
+}
 };
 
 const fetchProducts = async (details) => {
@@ -647,24 +693,24 @@ const calculateDetails = (detail, product, productUnitsDetails) => {
 
   const unitDetails = isMainUnit
     ? unit_details_options.map((unit) => {
-        const conversion = parseFloat(unit?.conversion || 1);
-        return {
-          _id: unit?._id,
-          inventory_unit: unit?.inventory_unit,
-          name: unit?.name,
-          quantity: parseFloat(unit?.quantity || 0),
-          conversion: conversion,
-          purchase_price:
-            parseFloat(detail?.purchase_price || 0) /
-            parseFloat(conversion || 0),
-          price_per_unit:
-            parseFloat(detail?.price_per_unit || 0) /
-            parseFloat(conversion || 0),
-          sale_price: parseFloat(unit?.sale_price || 0) || 0,
-          unit_quantity: parseFloat(totalQuantity || 0) * conversion,
-          unit_delivered: parseFloat(delivered || 0) * conversion,
-        };
-      })
+      const conversion = parseFloat(unit?.conversion || 1);
+      return {
+        _id: unit?._id,
+        inventory_unit: unit?.inventory_unit,
+        name: unit?.name,
+        quantity: parseFloat(unit?.quantity || 0),
+        conversion: conversion,
+        purchase_price:
+          parseFloat(detail?.purchase_price || 0) /
+          parseFloat(conversion || 0),
+        price_per_unit:
+          parseFloat(detail?.price_per_unit || 0) /
+          parseFloat(conversion || 0),
+        sale_price: parseFloat(unit?.sale_price || 0) || 0,
+        unit_quantity: parseFloat(totalQuantity || 0) * conversion,
+        unit_delivered: parseFloat(delivered || 0) * conversion,
+      };
+    })
     : inventoryProductUnit;
 
   const purchaseDetails = {
@@ -824,36 +870,36 @@ const update_purchase_order = async (req, res) => {
 
       const inventoryUpdateData = detail.inventory
         ? // update inventory
-          {
-            supplier: supplier,
-            purchase_price: isMainUnit ? detail?.purchase_price : 0,
-            price_per_unit: isMainUnit ? detail?.price_per_unit : 0,
-            sale_price: isMainUnit ? detail?.sale_price : 0,
-            tax: isMainUnit ? detail?.tax : 0,
-            stock: isMainUnit ? total_delivered : total_unit_delivered,
-            expiry_date: isMainUnit ? detail?.expiry_date : "",
-            barcode: isMainUnit ? detail?.barcode : "",
-          }
+        {
+          supplier: supplier,
+          purchase_price: isMainUnit ? detail?.purchase_price : 0,
+          price_per_unit: isMainUnit ? detail?.price_per_unit : 0,
+          sale_price: isMainUnit ? detail?.sale_price : 0,
+          tax: isMainUnit ? detail?.tax : 0,
+          stock: isMainUnit ? total_delivered : total_unit_delivered,
+          expiry_date: isMainUnit ? detail?.expiry_date : "",
+          barcode: isMainUnit ? detail?.barcode : "",
+        }
         : // create inventory
-          {
-            _id: newInventoryId,
-            number: assigned_innevtory_number,
-            purchase: id,
-            supplier: supplier,
-            product: detail?.description,
-            purchase_price: isMainUnit ? detail?.purchase_price : 0,
-            price_per_unit: isMainUnit ? detail?.price_per_unit : 0,
-            sale_price: isMainUnit ? detail?.sale_price : 0,
-            tax: isMainUnit ? detail?.tax : 0,
-            stock: isMainUnit ? detail.delivered : total_unit_delivered,
-            expiry_date: isMainUnit ? detail?.expiry_date : "",
-            barcode: isMainUnit ? detail?.barcode : "",
-            status: status ? status : 0,
-            ref: authorize?.ref,
-            branch: branch ? branch : authorize?.branch,
-            created: new Date(),
-            created_by: authorize?.id,
-          };
+        {
+          _id: newInventoryId,
+          number: assigned_innevtory_number,
+          purchase: id,
+          supplier: supplier,
+          product: detail?.description,
+          purchase_price: isMainUnit ? detail?.purchase_price : 0,
+          price_per_unit: isMainUnit ? detail?.price_per_unit : 0,
+          sale_price: isMainUnit ? detail?.sale_price : 0,
+          tax: isMainUnit ? detail?.tax : 0,
+          stock: isMainUnit ? detail.delivered : total_unit_delivered,
+          expiry_date: isMainUnit ? detail?.expiry_date : "",
+          barcode: isMainUnit ? detail?.barcode : "",
+          status: status ? status : 0,
+          ref: authorize?.ref,
+          branch: branch ? branch : authorize?.branch,
+          created: new Date(),
+          created_by: authorize?.id,
+        };
 
       inventoryUpdates.push({
         updateOne: {
@@ -869,56 +915,56 @@ const update_purchase_order = async (req, res) => {
 
       const purchaseOrderUpdateData = detail.inventory
         ? //update purchase order details
-          {
-            description: product._id,
-            name: detail.name,
-            unit: detail.unit,
-            unit_name: detail.unit_name,
-            purchase_price: detail.purchase_price,
-            conversion: detail.conversion,
-            quantity: detail.quantity,
-            delivered: detail.delivered,
-            free: detail.free,
-            tax: detail.tax,
-            barcode: detail.barcode,
-            price_per_unit: detail.price_per_unit,
-            sale_price: detail.sale_price,
-            expiry_date: detail.expiry_date,
-            tax_amount: detail.tax_amount,
-            quantity: detail.quantity,
-            delivered: detail.delivered,
-            tax: detail.tax,
-            free: detail.free,
-            total: itemTotal,
-          }
+        {
+          description: product._id,
+          name: detail.name,
+          unit: detail.unit,
+          unit_name: detail.unit_name,
+          purchase_price: detail.purchase_price,
+          conversion: detail.conversion,
+          quantity: detail.quantity,
+          delivered: detail.delivered,
+          free: detail.free,
+          tax: detail.tax,
+          barcode: detail.barcode,
+          price_per_unit: detail.price_per_unit,
+          sale_price: detail.sale_price,
+          expiry_date: detail.expiry_date,
+          tax_amount: detail.tax_amount,
+          quantity: detail.quantity,
+          delivered: detail.delivered,
+          tax: detail.tax,
+          free: detail.free,
+          total: itemTotal,
+        }
         : // create purchase order details
-          {
-            _id: newPurchaseOrderDetailId,
-            purchase: id,
-            inventory: inventoryUpdateData?._id,
-            description: detail?.description,
-            name: detail?.name,
-            unit: detail?.unit,
-            unit_name: detail?.unit_name,
-            purchase_price: detail?.purchase_price,
-            conversion: detail?.conversion,
-            quantity: detail?.quantity,
-            delivered: detail?.delivered,
-            free: detail?.free,
-            tax: detail?.tax,
-            type: detail?.type,
-            barcode: detail?.barcode,
-            price_per_unit: detail?.price_per_unit,
-            sale_price: detail?.sale_price,
-            expiry_date: detail?.expiry_date,
-            tax_amount: detail?.tax_amount,
-            total: itemTotal,
-            status: status ? status : 0,
-            ref: authorize?.ref,
-            branch: branch ? branch : authorize?.branch,
-            created: new Date(),
-            created_by: authorize?.id,
-          };
+        {
+          _id: newPurchaseOrderDetailId,
+          purchase: id,
+          inventory: inventoryUpdateData?._id,
+          description: detail?.description,
+          name: detail?.name,
+          unit: detail?.unit,
+          unit_name: detail?.unit_name,
+          purchase_price: detail?.purchase_price,
+          conversion: detail?.conversion,
+          quantity: detail?.quantity,
+          delivered: detail?.delivered,
+          free: detail?.free,
+          tax: detail?.tax,
+          type: detail?.type,
+          barcode: detail?.barcode,
+          price_per_unit: detail?.price_per_unit,
+          sale_price: detail?.sale_price,
+          expiry_date: detail?.expiry_date,
+          tax_amount: detail?.tax_amount,
+          total: itemTotal,
+          status: status ? status : 0,
+          ref: authorize?.ref,
+          branch: branch ? branch : authorize?.branch,
+          created: new Date(),
+          created_by: authorize?.id,
+        };
 
       purchaseOrderDetailsUpdates.push({
         updateOne: {
@@ -953,23 +999,23 @@ const update_purchase_order = async (req, res) => {
           const inventoryUnitUpdateData =
             unit?._id == detail?.unit
               ? // sub unit
-                {
-                  name: detail?.unit_name,
-                  conversion: detail.conversion,
-                  purchase_price: detail.purchase_price,
-                  price_per_unit: detail.price_per_unit,
-                  sale_price: detail.sale_price,
-                  stock: total_sub_unit_delivered,
-                }
+              {
+                name: detail?.unit_name,
+                conversion: detail.conversion,
+                purchase_price: detail.purchase_price,
+                price_per_unit: detail.price_per_unit,
+                sale_price: detail.sale_price,
+                stock: total_sub_unit_delivered,
+              }
               : // product unit
-                {
-                  name: unit?.name,
-                  conversion: unit.conversion,
-                  purchase_price: unit.purchase_price,
-                  price_per_unit: unit.price_per_unit,
-                  sale_price: unit.sale_price,
-                  stock: total_unit_delivered,
-                };
+              {
+                name: unit?.name,
+                conversion: unit.conversion,
+                purchase_price: unit.purchase_price,
+                price_per_unit: unit.price_per_unit,
+                sale_price: unit.sale_price,
+                stock: total_unit_delivered,
+              };
 
           inventoryUnitDetailsUpdates.push({
             updateOne: {
@@ -1009,37 +1055,37 @@ const update_purchase_order = async (req, res) => {
           const inventoryUnitUpdateData =
             unit?._id == detail?.unit
               ? // sub unit
-                {
-                  _id: newInventoryUnitId,
-                  inventory: inventoryUpdateData?._id,
-                  name: detail?.unit_name,
-                  conversion: detail.conversion,
-                  purchase_price: detail.purchase_price,
-                  price_per_unit: detail.price_per_unit,
-                  sale_price: detail.sale_price,
-                  stock: detail.delivered,
-                  status: status ? status : 0,
-                  ref: authorize?.ref,
-                  branch: branch ? branch : authorize?.branch,
-                  created: new Date(),
-                  created_by: authorize?.id,
-                }
+              {
+                _id: newInventoryUnitId,
+                inventory: inventoryUpdateData?._id,
+                name: detail?.unit_name,
+                conversion: detail.conversion,
+                purchase_price: detail.purchase_price,
+                price_per_unit: detail.price_per_unit,
+                sale_price: detail.sale_price,
+                stock: detail.delivered,
+                status: status ? status : 0,
+                ref: authorize?.ref,
+                branch: branch ? branch : authorize?.branch,
+                created: new Date(),
+                created_by: authorize?.id,
+              }
               : // product unit
-                {
-                  _id: newInventoryUnitId,
-                  inventory: inventoryUpdateData?._id,
-                  name: unit?.name,
-                  conversion: unit.conversion,
-                  purchase_price: unit.purchase_price,
-                  price_per_unit: unit.price_per_unit,
-                  sale_price: unit.sale_price,
-                  stock: unit.unit_delivered,
-                  status: status ? status : 0,
-                  ref: authorize?.ref,
-                  branch: branch ? branch : authorize?.branch,
-                  created: new Date(),
-                  created_by: authorize?.id,
-                };
+              {
+                _id: newInventoryUnitId,
+                inventory: inventoryUpdateData?._id,
+                name: unit?.name,
+                conversion: unit.conversion,
+                purchase_price: unit.purchase_price,
+                price_per_unit: unit.price_per_unit,
+                sale_price: unit.sale_price,
+                stock: unit.unit_delivered,
+                status: status ? status : 0,
+                ref: authorize?.ref,
+                branch: branch ? branch : authorize?.branch,
+                created: new Date(),
+                created_by: authorize?.id,
+              };
 
           inventoryUnitDetailsUpdates.push({
             updateOne: {
@@ -1121,21 +1167,21 @@ const update_purchase_order = async (req, res) => {
         //payment create & update
         const paymentUpdateData = purchase_payment_id
           ? //update
-            {
-              name: value,
-              amount: purchase_payment_amount,
-            }
+          {
+            name: value,
+            amount: purchase_payment_amount,
+          }
           : //create
-            {
-              purchase: id,
-              name: value,
-              amount: purchase_payment_amount,
-              status: status ? status : 0,
-              ref: authorize?.ref,
-              branch: branch ? branch : authorize?.branch,
-              created: new Date(),
-              created_by: authorize?.id,
-            };
+          {
+            purchase: id,
+            name: value,
+            amount: purchase_payment_amount,
+            status: status ? status : 0,
+            ref: authorize?.ref,
+            branch: branch ? branch : authorize?.branch,
+            created: new Date(),
+            created_by: authorize?.id,
+          };
 
         if (purchase_payment_id) {
           paymentsUpdates.push({

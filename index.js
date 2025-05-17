@@ -36,7 +36,10 @@ const balanceSheetRoutes = require("./Routes/balanceSheetRoutes");
 const ProfitLossRoutes = require("./Routes/ProfitLossRoutes");
 const TrialBalanceRoutes = require("./Routes/trialBalanceRoutes");
 const generalLedgerSummary = require("./Routes/generalledgerSummary");
-
+const PurchaseVoucherRoutes = require("./Routes/PurchaseVoucherRoutes");
+const ReceiptNotesRoutes = require("./Routes/ReceiptNotesRoutes");
+const PurchaseOrdersRoutes = require("./Routes/PurchaseOrdersRoutes");
+const GrnRoutes = require("./Routes/GrnRoutes");
 const path = require("path");
 
 const PORT =
@@ -112,6 +115,10 @@ const allRoutes = {
   ProfitLossRoutes,
   TrialBalanceRoutes,
   generalLedgerSummary,
+  PurchaseVoucherRoutes,
+  ReceiptNotesRoutes,
+  PurchaseOrdersRoutes,
+  GrnRoutes,
 };
 
 for (const [name, route] of Object.entries(allRoutes)) {
@@ -164,6 +171,10 @@ app.use("/api", balanceSheetRoutes);
 app.use("/api", ProfitLossRoutes);
 app.use("/api", TrialBalanceRoutes);
 app.use("/ledger-summary", generalLedgerSummary);
+app.use("/purchase-voucher", PurchaseVoucherRoutes);
+app.use("/api", ReceiptNotesRoutes);
+app.use("/api", PurchaseOrdersRoutes);
+app.use("/api/grn", GrnRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server started at ${PORT}`);
