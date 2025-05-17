@@ -1,4 +1,3 @@
-
 // const mongoose = require("mongoose");
 
 // const GRNDetailSchema = new mongoose.Schema(
@@ -124,9 +123,6 @@
 // GRNSchema.index({ grn_number: 1 }, { unique: true });
 
 // module.exports = mongoose.model("GRN", GRNSchema);
-
-
-
 
 //new model for supplier with Po
 
@@ -262,10 +258,8 @@ module.exports = mongoose.model("GRN", GRNSchema);
 
 */
 
-
-
 const mongoose = require("mongoose");
-const Supplier = require("../Models/suppliers")
+const Supplier = require("../Models/suppliers");
 // Sub-schema for GRN details
 const GRNDetailSchema = new mongoose.Schema(
   {
@@ -379,9 +373,8 @@ const GRNSchema = new mongoose.Schema(
       required: true,
     },
     grn_details: [GRNDetailSchema],
-  }, 
+  },
 
-  
   { timestamps: true }
 );
 
