@@ -1,4 +1,8 @@
 const mongoose = require("mongoose");
+
+// ========================
+//  CONSTANTS & VALIDATIONS
+// ========================
 const accountTypes = [
   "Bank & Cash",
   "Current Asset",
@@ -12,89 +16,171 @@ const accountTypes = [
   "Expense",
   "Direct Costs",
   "Income",
-  "sales revenue",
-  "expense",
-  "direct expense",
+  "Sales Revenue", // Standardized to Title Case
+  "Direct Expense",
   "Current Liability",
   "Liability",
   "Non-current Liability",
 ];
 
 const accountCategories = ["Assets", "Liabilities", "Equity", "Expenses", "Income"];
+const taxTypes = ["VAT", "GST", "Sales Tax", "None"];
+const depreciationMethods = ["Straight-Line", "Declining Balance", "None"];
 
+// ========================
+//  SCHEMA DEFINITION
+// ========================
 const AccountSchema = new mongoose.Schema({
-  name: { type: String, required: true }, // Account name (e.g Accounts Receivable, Account Payable)
-  code: { type: String, required: true, unique: true }, // Account code (120, 140)
-  type: { type: String, required: true, enum: accountTypes }, // Specific account type
-  category: { type: String, required: true, enum: accountCategories }, // Broad category
-  balance: { type: Number, default: 0 }, // Account balance (default to $0.00)
-  branch: { type: String, default: "Main" }, // Branch associated with the account
-  description: { type: String, default: "" }, // Description of the account
-  currency: { type: String, default: "OMR" }, // Currency (default to OMR)
-  status: { type: String, enum: ["Active", "Inactive"], default: "Active" }, // Account status
-  createdAt: { type: Date, default: Date.now }, // Timestamp when the account was created
+  // Core Fields
+  name: { type: String, required: true, trim: true },
+  code: { type: String, required: true, unique: true, match: /^[0-9]{4,6}$/ }, // e.g., "1200"
+  type: { type: String, required: true, enum: accountTypes },
+  category: { type: String, required: true, enum: accountCategories },
+  balance: { type: Number, default: 0 },
+  description: { type: String, default: "" },
+  status: { type: String, enum: ["Active", "Inactive"], default: "Active" },
+  createdAt: { type: Date, default: Date.now },
 
-  // Add these new fields for hierarchy and tracking
-  parentAccount: { 
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Account",
-    default: null
+  // Hierarchy & Relationships
+  parentAccount: { type: mongoose.Schema.Types.ObjectId, ref: "Account", default: null },
+  isContraAccount: { type: Boolean, default: false },
+  depth: { type: Number, default: 0 },
+
+  // Tax Configuration
+  taxApplicable: { type: Boolean, default: false },
+  taxRate: { type: Number, default: 0, min: 0, max: 100 }, // e.g., 5%
+  taxType: { type: String, enum: taxTypes, default: "None" },
+
+  // Multi-Currency Support
+  currency: { type: String, default: "OMR", uppercase: true },
+  balances: {
+    OMR: { type: Number, default: 0 },
+    USD: { type: Number, default: 0 },
+    EUR: { type: Number, default: 0 },
   },
-  // isHeader: { 
-  //   type: Boolean, 
-  //   default: false 
-  // },
-  balanceHistory: [{
-    date: Date,
-    balance: Number,
-    currency: String
-  }],
-  depth: {
-    type: Number,
-    default: 0
-  }
 
+  // Budgeting & Forecasting
+  budget: {
+    monthly: { type: Number, default: 0 },
+    yearly: { type: Number, default: 0 },
+  },
+  actualVsBudget: [{
+    date: { type: Date, default: Date.now },
+    actual: { type: Number },
+    budget: { type: Number },
+    variance: { type: Number }, // actual - budget
+  }],
+
+  // Fixed Asset Depreciation
+  depreciation: {
+    method: { type: String, enum: depreciationMethods, default: "None" },
+    usefulLifeYears: { type: Number, default: 0 },
+    salvageValue: { type: Number, default: 0 },
+    monthlyExpense: { type: Number, default: 0 }, // Auto-calculated
+  },
+
+  // Security & Workflow
+  requiresApproval: { type: Boolean, default: false },
+  approvals: [{
+    user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    status: { type: String, enum: ["Pending", "Approved", "Rejected"], default: "Pending" },
+    timestamp: { type: Date, default: Date.now },
+  }],
+  fiscalYearLock: { type: Boolean, default: false },
+
+  // Audit & Integration
+  balanceHistory: [{
+    date: { type: Date, default: Date.now },
+    balance: { type: Number },
+    currency: { type: String },
+  }],
+  auditLog: [{
+    user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    action: { type: String, enum: ["Create", "Update", "Delete", "Adjustment"] },
+    oldValue: { type: mongoose.Schema.Types.Mixed },
+    newValue: { type: mongoose.Schema.Types.Mixed },
+    timestamp: { type: Date, default: Date.now },
+  }],
+  externalId: { type: String }, // For ERP integration
 });
 
-// Replace the existing updateBalance method with this enhanced version
-AccountSchema.statics.updateBalances = async function(journalEntry) {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-  
-  try {
-    // Process all entries in transaction
-    for (const entry of journalEntry.entries) {
-      const account = await this.findById(entry.account).session(session);
-      if (!account) continue;
+// ========================
+//  INDEXES (For Performance)
+// ========================
+AccountSchema.index({ code: 1, parentAccount: 1, category: 1 });
+AccountSchema.index({ status: 1, type: 1 });
 
-      // Calculate balance change based on entry type and category
-      const amount = entry.type === 'debit' ? entry.amount : -entry.amount;
-      const balanceChange = ["Assets", "Expenses"].includes(account.category) 
-        ? amount 
-        : -amount;
+// ========================
+//  MIDDLEWARE & VALIDATIONS
+// ========================
+AccountSchema.pre("save", async function (next) {
+  // --- Parent-Child Validations ---
+  if (this.parentAccount) {
+    const parent = await mongoose.model("Account").findById(this.parentAccount);
+    if (!parent) throw new Error("Parent account not found");
 
-      // Update account balance
-      account.balance += balanceChange;
-      
-      // Update balance history
-      account.balanceHistory.push({
-        date: new Date(),
-        balance: account.balance,
-        currency: account.currency
-      });
-
-      await account.save({ session });
-
-      // Propagate changes to parent accounts
-      let parent = account.parentAccount;
-      while (parent) {
-        const parentAccount = await this.findById(parent).session(session);
-        parentAccount.balance += balanceChange;
-        await parentAccount.save({ session });
-        parent = parentAccount.parentAccount;
-      }
+    // Code inheritance (e.g., parent "1200" → child "1201")
+    if (!this.code.startsWith(parent.code)) {
+      throw new Error(`Child account code must inherit from parent (e.g., ${parent.code} → ${parent.code}1)`);
     }
 
+    // Category consistency
+    if (this.category !== parent.category) {
+      throw new Error(`Parent (${parent.category}) and child (${this.category}) categories must match`);
+    }
+
+    // Depth limit (max 3 levels)
+    this.depth = parent.depth + 1;
+    if (this.depth > 3) throw new Error("Account hierarchy cannot exceed 3 levels");
+  }
+
+  // --- Contra-Account Rules ---
+  if (this.isContraAccount) {
+    if (this.category === "Assets" && this.type !== "Depreciation") {
+      throw new Error("Contra-assets must be of type 'Depreciation'");
+    }
+    if (this.category === "Income" && !["Sales Returns", "Discounts"].includes(this.type)) {
+      throw new Error("Contra-income accounts must track refunds/discounts");
+    }
+  }
+
+  // --- Depreciation Calculation ---
+  if (this.type === "Fixed Asset" && this.depreciation.method !== "None") {
+    const annualDepr = (this.balance - this.depreciation.salvageValue) / this.depreciation.usefulLifeYears;
+    this.depreciation.monthlyExpense = annualDepr / 12;
+  }
+
+  // --- Budget Variance ---
+  if (this.isModified("balance") || this.isModified("budget")) {
+    this.actualVsBudget.push({
+      actual: this.balance,
+      budget: this.budget.yearly,
+      variance: this.balance - this.budget.yearly,
+    });
+  }
+
+  next();
+});
+
+// ========================
+//  STATIC METHODS
+// ========================
+AccountSchema.statics.updateBalances = async function (journalEntry) {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const bulkOps = journalEntry.entries.map(entry => ({
+      updateOne: {
+        filter: { _id: entry.account },
+        update: {
+          $inc: { balance: calculateBalanceChange(entry) },
+          $push: { balanceHistory: { balance: this.balance, currency: this.currency } },
+        },
+      },
+    }));
+
+    await this.bulkWrite(bulkOps, { session });
     await session.commitTransaction();
   } catch (error) {
     await session.abortTransaction();
@@ -104,55 +190,19 @@ AccountSchema.statics.updateBalances = async function(journalEntry) {
   }
 };
 
-// Add validation for account hierarchy
-// AccountSchema.pre('save', function(next) {
-//   if (this.parentAccount) {
-//     // Validate code structure (child code should start with parent code)
-//     const parentCode = this.parentAccount.code;
-//     if (!this.code.startsWith(parentCode)) {
-//       return next(new Error(`Child account code ${this.code} must start with parent code ${parentCode}`));
-//     }
-    
-//     // Auto-calculate depth
-//     this.depth = this.parentAccount.depth + 1;
-//   }
+// Helper: Calculate balance change based on debit/credit and account type
+function calculateBalanceChange(entry) {
+  const account = entry.account;
+  const amount = entry.type === "debit" ? entry.amount : -entry.amount;
+  
+  return account.isContraAccount 
+    ? -amount 
+    : ["Assets", "Expenses"].includes(account.category) 
+      ? amount 
+      : -amount;
+}
 
-//   // Header accounts must have 0 balance
-//   if (this.isHeader && this.balance !== 0) {
-//     return next(new Error("Header accounts must have 0 balance"));
-//   }
-
-//   next();
-// });
-
-
-
-AccountSchema.pre('save', async function(next) {
-  if (this.parentAccount) {
-    // Populate the parent account to validate the code structure
-    const parentAccount = await this.model('Account').findById(this.parentAccount).exec();
-    
-    if (!parentAccount) {
-      return next(new Error("Parent account does not exist"));
-    }
-
-    // Validate code structure (child code should start with parent code)
-    const parentCode = parentAccount.code;
-    if (!this.code.startsWith(parentCode)) {
-      return next(new Error(`Child account code ${this.code} must start with parent code ${parentCode}`));
-    }
-
-    // Auto-calculate depth
-    this.depth = parentAccount.depth + 1;
-  }
-
-  // Header accounts must have 0 balance
-  // if (this.isHeader && this.balance !== 0) {
-  //   return next(new Error("Header accounts must have 0 balance"));
-  // }
-
-  next();
-});
-
-
+// ========================
+//  EXPORT
+// ========================
 module.exports = mongoose.model("Account", AccountSchema);
