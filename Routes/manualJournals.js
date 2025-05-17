@@ -4,7 +4,9 @@ const {
   get_all_manual_journals,
   get_manual_journal,
   //update_manual_journal,
-  delete_manual_journal
+  delete_manual_journal,
+  create_contra_entry,
+  get_contra_balance
 } = require("../Controllers/manualJournal");
 
 const manualJournals = express.Router();
@@ -23,5 +25,12 @@ manualJournals.get("/api/manual-journal/:id", get_manual_journal);
 
 // Delete a manual journal entry by ID (Fixed: Added `/:id`)
 manualJournals.delete("/api/delete-manual-journal/:id", delete_manual_journal);
+
+
+// Create a contra entry (offset AR/AP balances)
+manualJournals.post("/api/contra-entry", create_contra_entry); // Add this route
+
+// Get net balance for a specific counterparty
+manualJournals.get("/api/contra-balance/:contactId", get_contra_balance); // Add this route
 
 module.exports = manualJournals;

@@ -37,67 +37,13 @@ const accountCategories = ["Assets", "Liabilities", "Equity", "Expenses", "Incom
  * @param {Object} req - The request object.
  * @param {Object} res - The response object.
  */
-// const create_account = async (req, res) => {
-//   try {
-//     const authorize = authorization(req);
-//     if (!authorize) return unauthorized(res);
 
-//     const { name, code, type, category, branch, description, currency, status } = req.body;
-
-//     // Validate required fields
-//     if (!name || !code || !type || !category) {
-//       return incomplete_400(res, "Name, code, type, and category are required");
-//     }
-
-//     // Validate account type and category
-//     if (!accountTypes.includes(type)) {
-//       return failed_400(res, "Invalid account type");
-//     }
-//     if (!accountCategories.includes(category)) {
-//       return failed_400(res, "Invalid account category");
-//     }
-
-//     // Check for existing account with the same code or name
-//     const existingAccount = await Account.findOne({
-//       $or: [{ code }, { name }],
-//       branch: branch || authorize.branch,
-//     });
-
-//     if (existingAccount) {
-//       return failed_400(res, "Account with this code or name already exists");
-//     }
-
-//     // Create new account
-//     const account = new Account({
-//       name,
-//       code,
-//       type,
-//       category,
-//       balance: 0,
-//       branch: branch || authorize.branch,
-//       description: description || "",
-//       currency: currency || "OMR",
-//       status: status || "Active",
-//       createdBy: authorize.id,
-//     });
-
-//     const newAccount = await account.save();
-
-//     return res.status(201).json({
-//       success: true,
-//       message: "Account created successfully",
-//       data: newAccount,
-//     });
-//   } catch (error) {
-//     return catch_400(res, error.message);
-//   }
-// };
 const create_account = async (req, res) => {
   try {
     const authorize = authorization(req);
     if (!authorize) return unauthorized(res);
 
-    const { name, code, type, category, branch, description, currency, status, parentAccount, isReceivable, isPayable } = req.body;
+    const { name, code, type, category, branch, description, currency, status, parentAccount, isReceivable, isPayable,isContraAccount = false,  } = req.body;
 
     // Validate required fields
     if (!name || !code || !type || !category) {
@@ -131,7 +77,9 @@ const create_account = async (req, res) => {
     // Check for existing account with the same code or name
     const existingAccount = await Account.findOne({
       $or: [{ code }, { name }],
-      branch: branch || authorize.branch,
+      // branch: branch || authorize.branch,
+      branch: authorize.branch,
+
     });
 
     if (existingAccount) {
@@ -152,6 +100,7 @@ const create_account = async (req, res) => {
       parentAccount: parentAccount || null, // Ensure parentAccount is optional
       isReceivable: isReceivable || false, // Default to false if not provided
       isPayable: isPayable || false, // Default to false if not provided
+      isContraAccount, // Include the flag from the request
       createdBy: authorize.id,
     });
 
