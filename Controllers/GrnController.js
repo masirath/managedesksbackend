@@ -1,4 +1,3 @@
-
 // const mongoose = require("mongoose");
 // const GRN = require("../Models/Grn");
 // const Product = require("../Models/products");
@@ -16,7 +15,7 @@
 // const { authorization } = require("../Global/authorization");
 
 // /**
-//  * Create GRN 
+//  * Create GRN
 //  */
 // const create_grn = async (req, res) => {
 //   try {
@@ -130,9 +129,9 @@
 //       .map(detail => ({
 //         updateOne: {
 //           filter: { product_name: detail.product_name },
-//           update: { 
-//             $inc: { quantity: detail.received_quantity }, 
-//             $setOnInsert: { product_name: detail.product_name } 
+//           update: {
+//             $inc: { quantity: detail.received_quantity },
+//             $setOnInsert: { product_name: detail.product_name }
 //           },
 //           upsert: true
 //         }
@@ -229,19 +228,15 @@
 //   getGRNById
 // };
 
-
-
-
 /**
  * Refactor version of api
  */
 
-
 const mongoose = require("mongoose");
-const GRN = require("../Models/Grn");
+const GRN = require("../Models/GRN");
 const Product = require("../Models/products");
 // const Supplier = require("../Models/suppliers")
-const Supplier = require("../Models/suppliers")
+const Supplier = require("../Models/suppliers");
 const Inventory = require("../Models/inventories");
 const PurchaseOrder = require("../Models/purchase_orders");
 const PurchaseOrderDetail = require("../Models/purchase_orders_details");
@@ -250,46 +245,67 @@ const {
   success_200,
   failed_400,
   incomplete_400,
-  unauthorized
+  unauthorized,
 } = require("../Global/errors");
 const { authorization } = require("../Global/authorization");
 
 const create_grn = async (req, res) => {
   try {
-    const auth = authorization(req, res, () => { });
+    const auth = authorization(req, res, () => {});
     if (!auth || !auth.id || !auth.branch) {
       console.log("🚫 Unauthorized access");
       return unauthorized(res);
     }
 
     const body = req.body;
-    const { grn_number, grn_date, received_by, notes, purchase_order_id, supplier } = body;
+    const {
+      grn_number,
+      grn_date,
+      received_by,
+      notes,
+      purchase_order_id,
+      supplier,
+    } = body;
 
     // Validate required fields
     if (!grn_number || !grn_date || !received_by) {
-      return incomplete_400(res, "GRN number, date, and received by are required");
+      return incomplete_400(
+        res,
+        "GRN number, date, and received by are required"
+      );
     }
 
     // Validate supplier or purchase order
     if (!supplier && !purchase_order_id) {
-      return incomplete_400(res, "Supplier is required when no purchase order is selected");
+      return incomplete_400(
+        res,
+        "Supplier is required when no purchase order is selected"
+      );
     }
 
     // Validate purchase order (if provided)
-    let poDetails = [], poProducts = [], purchase_order_number = null;
+    let poDetails = [],
+      poProducts = [],
+      purchase_order_number = null;
     if (purchase_order_id) {
       const po = await PurchaseOrder.findById(purchase_order_id).exec();
       if (!po) return failed_400(res, "Purchase order not found");
 
       purchase_order_number = po.number; // Extract PO number
-      poDetails = await PurchaseOrderDetail.find({ purchase: purchase_order_id }).exec();
-      if (!poDetails.length) return failed_400(res, "No items found in this purchase order");
+      poDetails = await PurchaseOrderDetail.find({
+        purchase: purchase_order_id,
+      }).exec();
+      if (!poDetails.length)
+        return failed_400(res, "No items found in this purchase order");
 
-      poProducts = poDetails.map(d => d.product_name);
+      poProducts = poDetails.map((d) => d.product_name);
 
       // Validate supplier against PO supplier
       if (supplier && po.supplier.toString() !== supplier) {
-        return failed_400(res, "Supplier does not match the purchase order supplier");
+        return failed_400(
+          res,
+          "Supplier does not match the purchase order supplier"
+        );
       }
     }
 
@@ -300,36 +316,43 @@ const create_grn = async (req, res) => {
         return failed_400(res, "Invalid supplier ID format");
       }
       supplierDoc = await Supplier.findById(supplier).exec();
-      if (!supplierDoc) return failed_400(res, "Invalid or non-existent supplier");
+      if (!supplierDoc)
+        return failed_400(res, "Invalid or non-existent supplier");
     }
 
     // Process GRN details
     const grn_details = body.grn_details || [];
     if (!Array.isArray(grn_details) || grn_details.length === 0) {
-      return incomplete_400(res, "At least one item must be included in GRN details");
+      return incomplete_400(
+        res,
+        "At least one item must be included in GRN details"
+      );
     }
 
-   // Validate each item before processing
-   const extractProductName = (item) => {
-    if (!item) return "";
-    if (typeof item.product_name === "string") return item.product_name.trim();
-    if (typeof item.name === "string") return item.name.trim();
-    return "";
-  };
-  
-        for (const [index, item] of grn_details.entries()) {
-          const productName = extractProductName(item);
+    // Validate each item before processing
+    const extractProductName = (item) => {
+      if (!item) return "";
+      if (typeof item.product_name === "string")
+        return item.product_name.trim();
+      if (typeof item.name === "string") return item.name.trim();
+      return "";
+    };
 
-          if (!productName) {
-            return failed_400(res, `Product name is missing or invalid at row ${index + 1}`);
-          }
-        }
+    for (const [index, item] of grn_details.entries()) {
+      const productName = extractProductName(item);
 
-        
+      if (!productName) {
+        return failed_400(
+          res,
+          `Product name is missing or invalid at row ${index + 1}`
+        );
+      }
+    }
+
     const processedDetails = [];
     for (const item of grn_details) {
       const product_name = extractProductName(item);
-    
+
       let product_id = null;
 
       // Validate product ID (if provided)
@@ -344,12 +367,18 @@ const create_grn = async (req, res) => {
           const poName = extractProductName(poItem);
           return poName.toLowerCase() === product_name.toLowerCase();
         });
-        
+
         if (!matchedPOItem) {
-          return failed_400(res, `Product "${product_name}" is not part of this PO`);
+          return failed_400(
+            res,
+            `Product "${product_name}" is not part of this PO`
+          );
         }
         if (item.received_quantity > matchedPOItem.quantity) {
-          return failed_400(res, `Quantity for "${product_name}" exceeds purchase order`);
+          return failed_400(
+            res,
+            `Quantity for "${product_name}" exceeds purchase order`
+          );
         }
       }
       processedDetails.push({
@@ -358,14 +387,19 @@ const create_grn = async (req, res) => {
         received_quantity: parseFloat(item.received_quantity) || 0,
         damaged_quantity: parseFloat(item.damaged_quantity) || 0,
         unit_price: parseFloat(item.unit_price) || 0,
-        total_value: (parseFloat(item.received_quantity) || 0) * (parseFloat(item.unit_price) || 0),
+        total_value:
+          (parseFloat(item.received_quantity) || 0) *
+          (parseFloat(item.unit_price) || 0),
         barcode: item.barcode || "",
-        remarks: item.remarks || ""
+        remarks: item.remarks || "",
       });
     }
 
     // Calculate total received value
-    const total_received = processedDetails.reduce((sum, d) => sum + (d.total_value || 0), 0);
+    const total_received = processedDetails.reduce(
+      (sum, d) => sum + (d.total_value || 0),
+      0
+    );
 
     // Create GRN document
     const grn = new GRN({
@@ -380,15 +414,15 @@ const create_grn = async (req, res) => {
       grn_details: processedDetails,
       purchase_order: purchase_order_id || null,
       purchase_order_number: purchase_order_number || null,
-      supplier: supplierDoc?._id || supplier
+      supplier: supplierDoc?._id || supplier,
     });
 
     const savedGrn = await grn.save();
 
     // Update inventory
     const inventoryUpdates = processedDetails
-      .filter(detail => detail.product_name)
-      .map(detail => ({
+      .filter((detail) => detail.product_name)
+      .map((detail) => ({
         updateOne: {
           filter: { product_name: detail.product_name },
           update: {
@@ -398,11 +432,11 @@ const create_grn = async (req, res) => {
               unit_price: detail.unit_price,
               barcode: detail.barcode || "",
               created_at: new Date(),
-              updated_at: new Date()
-            }
+              updated_at: new Date(),
+            },
           },
-          upsert: true
-        }
+          upsert: true,
+        },
       }));
 
     if (inventoryUpdates.length > 0) {
@@ -411,19 +445,25 @@ const create_grn = async (req, res) => {
 
     // Update purchase order status (if applicable)
     if (purchase_order_id) {
-      const poItems = await PurchaseOrderDetail.find({ purchase: purchase_order_id }).exec();
-      const poItemMap = new Map(poItems.map(item => [item.product_name, item.quantity]));
+      const poItems = await PurchaseOrderDetail.find({
+        purchase: purchase_order_id,
+      }).exec();
+      const poItemMap = new Map(
+        poItems.map((item) => [item.product_name, item.quantity])
+      );
 
-      const allItemsReceived = Array.from(poItemMap.keys()).every(product_name => {
-        const totalReceived = grn_details
-          .filter(item => item.product_name === product_name)
-          .reduce((sum, item) => sum + (item.received_quantity || 0), 0);
-        return totalReceived >= poItemMap.get(product_name);
-      });
+      const allItemsReceived = Array.from(poItemMap.keys()).every(
+        (product_name) => {
+          const totalReceived = grn_details
+            .filter((item) => item.product_name === product_name)
+            .reduce((sum, item) => sum + (item.received_quantity || 0), 0);
+          return totalReceived >= poItemMap.get(product_name);
+        }
+      );
 
       if (allItemsReceived) {
         await PurchaseOrder.findByIdAndUpdate(purchase_order_id, {
-          $set: { status: "completed" }
+          $set: { status: "completed" },
         }).exec();
       }
     }
@@ -436,11 +476,15 @@ const create_grn = async (req, res) => {
         grn_number: savedGrn.grn_number,
         status: savedGrn.status,
         total_received: savedGrn.total_received,
-        items: savedGrn.grn_details.length
-      }
+        items: savedGrn.grn_details.length,
+      },
     });
   } catch (error) {
-    console.error("💥 [ERROR] Failed to create GRN:", error.message, error.stack);
+    console.error(
+      "💥 [ERROR] Failed to create GRN:",
+      error.message,
+      error.stack
+    );
     return failed_400(res, `Failed to create GRN: ${error.message}`);
   }
 };
@@ -468,7 +512,7 @@ const getGRNs = async (req, res) => {
       data: grns,
       total: count,
       page: parseInt(page),
-      limit: parseInt(limit)
+      limit: parseInt(limit),
     });
   } catch (err) {
     console.error("Error fetching GRNs:", err);
@@ -494,7 +538,7 @@ const getGRNById = async (req, res) => {
 
     return success_200(res, {
       success: true,
-      data: grn
+      data: grn,
     });
   } catch (err) {
     return failed_400(res, err.message || "Failed to fetch GRN");
@@ -504,6 +548,5 @@ const getGRNById = async (req, res) => {
 module.exports = {
   create_grn,
   getGRNs,
-  getGRNById
+  getGRNById,
 };
-
