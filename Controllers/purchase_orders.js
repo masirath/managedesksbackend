@@ -580,45 +580,45 @@ const create_purchase_order = async (req, res) => {
 
                     // ManualJournal entry: Add create the journal entry.
                     // ===== ADD ACCOUNTING INTEGRATION HERE =====
-                    try {
-                      // Get accounts
-                      const [payableAccount, cashAccount] = await Promise.all([
-                        Account.findOne({ isPayable: true, branch: branch || authorize.branch }),
-                        Account.findOne({ type: "Bank & Cash", branch: branch || authorize.branch })
-                      ]);
+                    // try {
+                    //   // Get accounts
+                    //   const [payableAccount, cashAccount] = await Promise.all([
+                    //     Account.findOne({ isPayable: true, branch: branch || authorize.branch }),
+                    //     Account.findOne({ type: "Bank & Cash", branch: branch || authorize.branch })
+                    //   ]);
 
-                      if (!payableAccount || !cashAccount) {
-                        throw new Error("Accounting accounts not configured");
-                      }
+                    //   if (!payableAccount || !cashAccount) {
+                    //     throw new Error("Accounting accounts not configured");
+                    //   }
 
-                      // Create journal entry
-                      await new ManualJournal({
-                        date: new Date(),
-                        description: `Payment for PO ${purchase_order_save.number}`,
-                        entries: [
-                          {
-                            account: payableAccount._id,
-                            type: "debit",
-                            amount: value.amount
-                          },
-                          {
-                            account: cashAccount._id,
-                            type: "credit",
-                            amount: value.amount
-                          }
-                        ],
-                        referenceNumber: `PAY-${purchase_order_payment_save._id}`,
-                        branch: branch || authorize.branch,
-                        created_by: authorize.id
-                      }).save();
+                    //   // Create journal entry
+                    //   await new ManualJournal({
+                    //     date: new Date(),
+                    //     description: `Payment for PO ${purchase_order_save.number}`,
+                    //     entries: [
+                    //       {
+                    //         account: payableAccount._id,
+                    //         type: "debit",
+                    //         amount: value.amount
+                    //       },
+                    //       {
+                    //         account: cashAccount._id,
+                    //         type: "credit",
+                    //         amount: value.amount
+                    //       }
+                    //     ],
+                    //     referenceNumber: `PAY-${purchase_order_payment_save._id}`,
+                    //     branch: branch || authorize.branch,
+                    //     created_by: authorize.id
+                    //   }).save();
 
-                    } catch (error) {
-                      console.error("Accounting integration failed:", error.message);
-                      // Rollback payment if needed
-                      await purchase_orders_payments.findByIdAndDelete(purchase_order_payment_save._id);
-                      throw error; // This will trigger the main catch block
-                    }
-        //end here of the above journal entry
+                    // } catch (error) {
+                    //   console.error("Accounting integration failed:", error.message);
+                    //   // Rollback payment if needed
+                    //   await purchase_orders_payments.findByIdAndDelete(purchase_order_payment_save._id);
+                    //   throw error; // This will trigger the main catch block
+                    // }
+                   //end here of the above journal entry
                 }
               }
 
