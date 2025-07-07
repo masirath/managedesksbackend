@@ -33,12 +33,40 @@ const depreciationMethods = ["Straight-Line", "Declining Balance", "None"];
 const AccountSchema = new mongoose.Schema({
   // Core Fields
   name: { type: String, required: true, trim: true },
-  code: { type: String, required: true, unique: true, match: /^[0-9]{4,6}$/ }, // e.g., "1200"
+  code: { type: String, required: true, match: /^[0-9]{4,6}$/ }, // removed the unique: true (bcoz of multibranch"
   type: { type: String, required: true, enum: accountTypes },
   category: { type: String, required: true, enum: accountCategories },
+
+
+  //Newly added fields
+  status: {
+    type: Number,
+    default: 1,
+    required: true,
+  },
+  ref: {
+    type: Number,
+    required: true,
+  },
+  branch: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "branches",
+    required: true,
+  },
+  created: {
+    type: Date,
+    required: true,
+  },
+  created_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "users",
+    required: true,
+  },
+
+
+//Balance & status
   balance: { type: Number, default: 0 },
   description: { type: String, default: "" },
-  status: { type: String, enum: ["Active", "Inactive"], default: "Active" },
   createdAt: { type: Date, default: Date.now },
 
   // Hierarchy & Relationships
@@ -107,8 +135,36 @@ const AccountSchema = new mongoose.Schema({
 // ========================
 //  INDEXES (For Performance)
 // ========================
-AccountSchema.index({ code: 1, parentAccount: 1, category: 1 });
-AccountSchema.index({ status: 1, type: 1 });
+// ========================
+//  INDEXES (For Performance)
+// ========================
+
+// 🔑 Primary search index: code + name + category
+AccountSchema.index({ code: 1, name: 1 });
+
+// 📦 Core filtering index: branch + status + type
+AccountSchema.index({ branch: 1, status: 1, type: 1 });
+
+// 🧾 Category-based reporting index
+AccountSchema.index({ branch: 1, status: 1, category: 1 });
+
+// 🔄 Contra account lookup
+AccountSchema.index({ isContraAccount: 1, category: 1 });
+
+// 🏦 Bank & Cash filter index
+AccountSchema.index({ branch: 1, type: 1 }, { partialFilterExpression: { type: "Bank & Cash" } });
+
+// 🧮 Balance tracking index
+AccountSchema.index({ category: 1, balance: -1 });
+
+// 🔐 User ownership index
+AccountSchema.index({ created_by: 1, branch: 1 });
+
+// ⚠️ Optional: Unique constraint on code per branch
+AccountSchema.index({ code: 1, branch: 1 }, {
+  unique: true,
+  partialFilterExpression: { status: { $ne: 2 } }
+});
 
 // ========================
 //  MIDDLEWARE & VALIDATIONS

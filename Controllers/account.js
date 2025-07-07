@@ -38,12 +38,26 @@ const accountCategories = ["Assets", "Liabilities", "Equity", "Expenses", "Incom
  * @param {Object} res - The response object.
  */
 
+//comment below for testing branch, ref, and
 const create_account = async (req, res) => {
   try {
     const authorize = authorization(req);
     if (!authorize) return unauthorized(res);
 
-    const { name, code, type, category, branch, description, currency, status, parentAccount, isReceivable, isPayable,isContraAccount = false,  } = req.body;
+    const {
+      name,
+      code,
+      type,
+      category,
+      description,
+      currency,
+      status,
+      parentAccount,
+      isReceivable,
+      isPayable,
+      isContraAccount = false,
+      branch,
+    } = req.body;
 
     // Validate required fields
     if (!name || !code || !type || !category) {
@@ -58,7 +72,7 @@ const create_account = async (req, res) => {
       return failed_400(res, "Invalid account category");
     }
 
-    // Validate isReceivable and isPayable are booleans
+    // Ensure isReceivable and isPayable are boolean
     if (isReceivable !== undefined && typeof isReceivable !== 'boolean') {
       return failed_400(res, "isReceivable must be a boolean");
     }
@@ -74,19 +88,18 @@ const create_account = async (req, res) => {
       }
     }
 
-    // Check for existing account with the same code or name
+    // Check for existing account with same code or name in current branch
     const existingAccount = await Account.findOne({
       $or: [{ code }, { name }],
-      // branch: branch || authorize.branch,
-      branch: authorize.branch,
-
+      branch: branch || authorize.branch,
+      status: { $ne: 2 }
     });
 
     if (existingAccount) {
       return failed_400(res, "Account with this code or name already exists");
     }
 
-    // Create new account
+    // Create new account with auto-filled fields
     const account = new Account({
       name,
       code,
@@ -96,26 +109,27 @@ const create_account = async (req, res) => {
       branch: branch || authorize.branch,
       description: description || "",
       currency: currency || "OMR",
-      status: status || "Active",
-      parentAccount: parentAccount || null, // Ensure parentAccount is optional
-      isReceivable: isReceivable || false, // Default to false if not provided
-      isPayable: isPayable || false, // Default to false if not provided
-      isContraAccount, // Include the flag from the request
-      createdBy: authorize.id,
+      status: status ? parseInt(status) : 1, // Active = 1
+      parentAccount: parentAccount || null,
+      isReceivable: isReceivable || false,
+      isPayable: isPayable || false,
+      isContraAccount,
+
+      // ✅ Auto-set from authorize
+      created: new Date(),
+      created_by: authorize.id,
+      ref: authorize.ref || 1, // fallback to default
     });
 
     const newAccount = await account.save();
 
-    return res.status(201).json({
-      success: true,
-      message: "Account created successfully",
-      data: newAccount,
-    });
+    return success_200(res, "Account created successfully", newAccount);
+
   } catch (error) {
+    console.error("Error creating account:", error.message);
     return catch_400(res, error.message);
   }
 };
-
 
 //end create chart of account with payable , receivable, account
 
@@ -124,6 +138,30 @@ const create_account = async (req, res) => {
  * @param {Object} req - The request object.
  * @param {Object} res - The response object.
  */
+// const get_account = async (req, res) => {
+//   try {
+//     const authorize = authorization(req);
+//     if (!authorize) return unauthorized(res);
+
+//     const { id } = req.params;
+//     if (!id) return incomplete_400(res, "Account ID is required");
+
+//     const account = await Account.findOne({ _id: id, status: { $ne: 2 } });
+
+//     if (!account) {
+//       return failed_400(res, "Account not found");
+//     }
+
+//     return res.status(200).json({
+//       success: true,
+//       message: "Account retrieved successfully",
+//       data: account,
+//     });
+//   } catch (error) {
+//     return catch_400(res, error.message);
+//   }
+// };
+
 const get_account = async (req, res) => {
   try {
     const authorize = authorization(req);
@@ -132,7 +170,11 @@ const get_account = async (req, res) => {
     const { id } = req.params;
     if (!id) return incomplete_400(res, "Account ID is required");
 
-    const account = await Account.findOne({ _id: id, status: { $ne: 2 } });
+    const account = await Account.findOne({
+      _id: id,
+      branch: authorize.branch, // Ensure it belongs to user's branch
+      status: { $ne: 2 },      // Exclude deleted
+    });
 
     if (!account) {
       return failed_400(res, "Account not found");
@@ -148,6 +190,8 @@ const get_account = async (req, res) => {
   }
 };
 
+
+
 /**
  * Get all accounts with optional filtering and pagination.
  * @param {Object} req - The request object.
@@ -158,65 +202,189 @@ const get_account = async (req, res) => {
 //     const authorize = authorization(req);
 //     if (!authorize) return unauthorized(res);
 
-//     const { branch, type, category, page = 1, limit = 10 } = req.query;
+//     // Parse and sanitize pagination values
+//     let page = parseInt(req.query.page) || 1;
+//     let limit = parseInt(req.query.limit) || 10;
+
+//     // Prevent abuse: limit max per page
+//     limit = Math.min(limit, 100); // cap at 100 max
+//     page = Math.max(page, 1); // page must be >= 1
+
+//     const { branch, type, category } = req.query;
 
 //     const filter = { status: { $ne: 2 } };
 //     if (branch) filter.branch = branch;
 //     if (type) filter.type = type;
 //     if (category) filter.category = category;
 
+//     const totalCount = await Account.countDocuments(filter);
+//     const totalPages = Math.ceil(totalCount / limit);
+
 //     const accounts = await Account.find(filter)
-//       .limit(limit * 1)
-//       .skip((page - 1) * limit);
+//       .skip((page - 1) * limit)
+//       .limit(limit);
 
 //     return res.status(200).json({
 //       success: true,
 //       message: "Accounts retrieved successfully",
+//       data: accounts,
+//       meta: {
+//         totalCount,
+//         currentPage: page,
+//         totalPages,
+//         pageSize: limit,
+//       },
+//     });
+//   } catch (error) {
+//     return catch_400(res, error.message);
+//   }
+// };
+
+/**
+ * Get all accounts with optional filtering, sorting, and pagination.
+ * @param {Object} req - The request object.
+ * @param {Object} res - The response object.
+ */
+// const get_all_accounts = async (req, res) => {
+//   try {
+//     const authorize = authorization(req);
+//     if (!authorize) return unauthorized(res);
+
+//     // Destructure filters from request body
+//     const {
+//       search,
+//       type,
+//       category,
+//       status,
+//       sort,
+//       page,
+//       limit,
+//     } = req.body;
+
+//     const page_number = Number(page) || 1;
+//     const page_limit = Number(limit) || 10;
+
+//     // Base filter: always apply branch and exclude deleted accounts
+//     const filter = {
+//       branch: authorize.branch,
+//       status: { $ne: 2 }, // Exclude deleted accounts
+//     };
+
+//     // Apply role-based branch override (if user is admin)
+//     if (authorize.role === "admin" && req.body.branch) {
+//       // Validate ObjectId before using
+//       if (mongoose.Types.ObjectId.isValid(req.body.branch)) {
+//         filter.branch = req.body.branch;
+//       }
+//     }
+
+//     // Apply filters based on request body
+//     if (search) {
+//       filter.$or = [
+//         { name: { $regex: search, $options: "i" } },
+//         { code: { $regex: search, $options: "i" } },
+//       ];
+//     }
+
+//     if (type) filter.type = type;
+//     if (category) filter.category = category;
+//     if (status !== undefined) filter.status = status;
+
+//     // Set sorting options
+//     let sortOption = { created: -1 }; // default sort
+//     if (sort == 0) {
+//       sortOption = { balance: 1 }; // ascending balance
+//     } else if (sort == 1) {
+//       sortOption = { balance: -1 }; // descending balance
+//     }
+
+//     // Get total count for pagination metadata
+//     const totalCount = await Account.countDocuments(filter);
+
+//     // Fetch paginated data
+//     const accounts = await Account.find(filter)
+//       .sort(sortOption)
+//       .skip((page_number - 1) * page_limit)
+//       .limit(page_limit)
+//       .populate("branch", "name")
+//       .lean();
+
+//     const totalPages = Math.ceil(totalCount / page_limit);
+
+//     return success_200(res, "Accounts retrieved successfully", {
+//       currentPage: page_number,
+//       totalPages,
+//       totalCount,
 //       data: accounts,
 //     });
 //   } catch (error) {
 //     return catch_400(res, error.message);
 //   }
 // };
+
+
+
 const get_all_accounts = async (req, res) => {
   try {
     const authorize = authorization(req);
     if (!authorize) return unauthorized(res);
 
-    // Parse and sanitize pagination values
-    let page = parseInt(req.query.page) || 1;
-    let limit = parseInt(req.query.limit) || 10;
+    // Destructure filters from query params
+    const {
+      search,
+      type,
+      category,
+      status,
+      sort,
+      page,
+      limit,
+    } = req.query;
 
-    // Prevent abuse: limit max per page
-    limit = Math.min(limit, 100); // cap at 100 max
-    page = Math.max(page, 1); // page must be >= 1
+    const page_number = Number(page) || 1;
+    const page_limit = Number(limit) || 10;
 
-    const { branch, type, category } = req.query;
+    // Base filter
+    const filter = {
+      branch: authorize.branch, // 🔐 Only allow current user's branch
+      status: { $ne: 2 },       // Exclude deleted accounts
+    };
 
-    const filter = { status: { $ne: 2 } };
-    if (branch) filter.branch = branch;
+    // Apply optional filters
+    if (search) {
+      filter.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { code: { $regex: search, $options: "i" } }
+      ];
+    }
+
     if (type) filter.type = type;
     if (category) filter.category = category;
+    if (status !== undefined) filter.status = status;
 
+    // Sort options
+    let sortOption = { created: -1 };
+    if (sort == 0) sortOption = { balance: 1 };
+    if (sort == 1) sortOption = { balance: -1 };
+
+    // Pagination
     const totalCount = await Account.countDocuments(filter);
-    const totalPages = Math.ceil(totalCount / limit);
+    const totalPages = Math.ceil(totalCount / page_limit);
 
     const accounts = await Account.find(filter)
-      .skip((page - 1) * limit)
-      .limit(limit);
+      .sort(sortOption)
+      .skip((page_number - 1) * page_limit)
+      .limit(page_limit)
+      .lean();
 
-    return res.status(200).json({
-      success: true,
-      message: "Accounts retrieved successfully",
+    return success_200(res, "Accounts retrieved successfully", {
+      currentPage: page_number,
+      totalPages,
+      totalCount,
       data: accounts,
-      meta: {
-        totalCount,
-        currentPage: page,
-        totalPages,
-        pageSize: limit,
-      },
     });
+
   } catch (error) {
+    console.error("Error fetching accounts:", error.message);
     return catch_400(res, error.message);
   }
 };

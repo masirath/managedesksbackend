@@ -40,7 +40,9 @@ const PurchaseVoucherRoutes = require("./Routes/PurchaseVoucherRoutes");
 const ReceiptNotesRoutes = require("./Routes/ReceiptNotesRoutes");
 const PurchaseOrdersRoutes = require("./Routes/PurchaseOrdersRoutes");
 const GrnRoutes = require("./Routes/GrnRoutes");
+const delivery_notes = require("./Routes/delivery_notes");
 const path = require("path");
+const lpos = require("./Routes/lpos");
 
 const PORT =
   Environment === "PRODUCTION"
@@ -119,6 +121,7 @@ const allRoutes = {
   ReceiptNotesRoutes,
   PurchaseOrdersRoutes,
   GrnRoutes,
+  delivery_notes,
 };
 
 for (const [name, route] of Object.entries(allRoutes)) {
@@ -155,6 +158,7 @@ app.use(requests);
 app.use(transfers);
 app.use(received);
 app.use(quotes);
+app.use(lpos);
 
 //testing chart of account route
 app.use(accountRoutes);
@@ -175,6 +179,7 @@ app.use("/purchase-voucher", PurchaseVoucherRoutes);
 app.use("/api", ReceiptNotesRoutes);
 app.use("/api", PurchaseOrdersRoutes);
 app.use("/api/grn", GrnRoutes);
+app.use(delivery_notes);
 
 app.listen(PORT, () => {
   console.log(`Server started at ${PORT}`);
