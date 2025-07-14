@@ -247,8 +247,8 @@ const signin = async (req, res) => {
               ref: user.ref,
               branch: user.branch,
             },
-            SECRET_KEY,
-           //{ expiresIn: '1d' } if we turn on the token have validty
+            SECRET_KEY
+            //{ expiresIn: '1d' } if we turn on the token have validty
           );
 
           const data = {
