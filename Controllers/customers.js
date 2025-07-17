@@ -16,6 +16,7 @@ const create_customer = async (req, res) => {
     if (authorize) {
       const {
         name,
+        code,
         email,
         phone,
         tax,
@@ -40,6 +41,7 @@ const create_customer = async (req, res) => {
         } else {
           const customer = new customers({
             name: name,
+            code: code,
             email: email,
             phone: phone,
             tax: tax,
@@ -74,6 +76,7 @@ const update_customer = async (req, res) => {
       const {
         id,
         name,
+        code,
         email,
         phone,
         tax,
@@ -121,6 +124,7 @@ const update_customer = async (req, res) => {
             const customer_log_save = await customer_log?.save();
 
             selected_customer.name = name;
+            selected_customer.code = code;
             selected_customer.email = email;
             selected_customer.phone = phone;
             selected_customer.tax = tax;
@@ -233,6 +237,7 @@ const get_all_customers = async (req, res) => {
 
     if (search) {
       customersList.$or = [
+        { code: { $regex: search, $options: "i" } },
         { name: { $regex: search, $options: "i" } },
         { email: { $regex: search, $options: "i" } },
         { phone: { $regex: search, $options: "i" } },

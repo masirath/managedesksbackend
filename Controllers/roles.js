@@ -216,7 +216,8 @@ const get_all_roles = async (req, res) => {
     const page_number = Number(page) || 1;
     const page_limit = Number(limit) || 10;
 
-    const productRoleList = { branch: authorize?.branch, status: { $ne: 2 } };
+    // const productRoleList = { branch: authorize?.branch, status: { $ne: 2 } };
+    const productRoleList = { ref: authorize?.ref, status: { $ne: 2 } };
 
     if (search) {
       productRoleList.name = { $regex: search, $options: "i" };

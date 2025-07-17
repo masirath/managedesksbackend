@@ -10,6 +10,7 @@ const {
   get_all_purchases_log,
   get_all_purchase_details,
   get_receive_inventories,
+  get_all_received_ids,
 } = require("../Controllers/received");
 const received = express.Router();
 
@@ -23,5 +24,6 @@ received?.post("/api/get-all-purchases-details", get_all_purchases_details);
 received?.post("/api/get-all-purchase-details", get_all_purchase_details);
 received?.post("/api/get-purchase-log", get_purchase_log);
 received?.post("/api/get-all-purchases-log", get_all_purchases_log);
+received?.post("/api/get-all-received-ids", get_all_received_ids);
 
 module.exports = received;

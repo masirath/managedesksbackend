@@ -40,6 +40,14 @@ const unauthorized = (res) => {
   });
 };
 
+const unauthorized_403 = (res) => {
+  return res.json({
+    status: false,
+    status_code: 403,
+    message: "Unauthorized",
+  });
+};
+
 module.exports = {
   catch_400,
   incomplete_400,
@@ -47,4 +55,5 @@ module.exports = {
   error_400,
   success_200,
   unauthorized,
+  unauthorized_403,
 };

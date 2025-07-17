@@ -43,6 +43,11 @@ const branches_schema = mongoose.Schema({
     required: true,
     type: String,
   },
+  billing: {
+    required: true,
+    type: Number,
+    default: 0,
+  },
   status: {
     required: true,
     type: Number,

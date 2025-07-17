@@ -3,12 +3,17 @@ const mongoose = require("mongoose");
 const inventories_schema = mongoose.Schema({
   number: {
     required: true,
-    type: Number,
+    type: String,
   },
   purchase: {
     required: false,
     type: mongoose.Schema.Types.ObjectId,
     ref: "purchase_orders",
+  },
+  receive: {
+    required: false,
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "received",
   },
   supplier: {
     required: false,
@@ -38,6 +43,10 @@ const inventories_schema = mongoose.Schema({
     required: true,
     type: Number,
     default: 0,
+  },
+  wholesale_price: {
+    required: false,
+    type: Number,
   },
   tax: {
     required: true,

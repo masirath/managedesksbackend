@@ -95,6 +95,7 @@ const create_branch = async (req, res) => {
             city,
             state,
             country,
+            billing,
             status,
           } = req?.body;
 
@@ -121,6 +122,7 @@ const create_branch = async (req, res) => {
                 city: city,
                 state: state,
                 country: country,
+                billing: billing ? billing : 0,
                 status: 0,
                 ref: authorize?.ref,
                 created: new Date(),
@@ -161,6 +163,7 @@ const update_branch = async (req, res) => {
             city,
             state,
             country,
+            billing,
             status,
           } = req?.body;
 
@@ -224,6 +227,7 @@ const update_branch = async (req, res) => {
                 selected_branch.city = city;
                 selected_branch.state = state;
                 selected_branch.country = country;
+                selected_branch.billing = billing ? billing : 0;
                 selected_branch.status = status ? status : 0;
 
                 const branch_update = await selected_branch?.save();
@@ -429,7 +433,11 @@ const get_all_sub_branches = async (req, res) => {
     const page_number = Number(page) || 1;
     const page_limit = Number(limit) || 10;
 
-    const branchList = { ref: authorize?.ref, _id: { $ne: authorize?.branch } };
+    const branchList = {
+      ref: authorize?.ref,
+      _id: { $ne: authorize?.branch },
+      status: { $ne: 2 },
+    };
 
     if (search) {
       branchList.name = { $regex: search, $options: "i" };
@@ -513,11 +521,38 @@ const get_all_branches_log = async (req, res) => {
   }
 };
 
+const get_auth_branch = async (req, res) => {
+  try {
+    let authorize = authorization(req);
+
+    if (authorize) {
+      // let { id } = req?.body;
+
+      // if (!id) {
+      //   incomplete_400(res);
+      // } else {
+      const selected_branch = await branches?.findById(authorize?.branch);
+
+      if (!selected_branch) {
+        failed_400(res, "Branch not found");
+      } else {
+        success_200(res, "", selected_branch);
+      }
+      // }
+    } else {
+      unauthorized(res);
+    }
+  } catch (errors) {
+    catch_400(res, errors?.message);
+  }
+};
+
 module.exports = {
   create_branch,
   update_branch,
   delete_branch,
   get_branch,
+  get_auth_branch,
   get_all_branches,
   get_all_sub_branches,
   get_branch_log,

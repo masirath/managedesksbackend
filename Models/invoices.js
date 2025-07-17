@@ -18,12 +18,40 @@ const invoices_schema = mongoose.Schema({
     required: false,
     type: Date,
   },
+  lpo_number: {
+    required: false,
+    type: String,
+  },
+  lpo_date: {
+    required: false,
+    type: Date,
+  },
+  salesman: {
+    required: false,
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "users",
+  },
+  reference: {
+    required: false,
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "references",
+  },
   subtotal: {
     required: true,
     type: Number,
     default: 0,
   },
   taxamount: {
+    required: true,
+    type: Number,
+    default: 0,
+  },
+  discount_value: {
+    required: true,
+    type: Number,
+    default: 0,
+  },
+  discount_type: {
     required: true,
     type: Number,
     default: 0,

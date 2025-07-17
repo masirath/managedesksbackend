@@ -5,6 +5,10 @@ const customers_schema = mongoose.Schema({
     required: false,
     type: String,
   },
+  code: {
+    required: false,
+    type: String,
+  },
   email: {
     required: false,
     type: String,

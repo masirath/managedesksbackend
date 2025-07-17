@@ -27,7 +27,7 @@ const purchase_orders_log_schema = mongoose.Schema({
     type: Date,
   },
   due_date: {
-    required: true,
+    required: false,
     type: Date,
   },
   subtotal: {

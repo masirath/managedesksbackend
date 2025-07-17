@@ -42,20 +42,6 @@ const lpos_schema = mongoose.Schema({
     type: Number,
     default: 0,
   },
-  delivery_status: {
-    required: true,
-    type: Number,
-    default: 0,
-  },
-  delivery_date: {
-    required: false,
-    type: Date,
-  },
-  payment_status: {
-    required: true,
-    type: Number,
-    default: 0,
-  },
   total: {
     required: true,
     type: Number,

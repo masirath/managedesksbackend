@@ -18,6 +18,9 @@ const purchases_returns_payments = require("../Models/purchases_returns_payments
 const expenses = require("../Models/expenses");
 const roles = require("../Models/roles");
 const roles_details = require("../Models/roles_details");
+const moment = require("moment-timezone");
+const purchase_orders_details = require("../Models/purchase_orders_details");
+const received_details = require("../Models/received_details");
 
 const get_dashboard = async (req, res) => {
   try {
@@ -41,7 +44,7 @@ const get_dashboard = async (req, res) => {
       viewpurchase = false;
     }
 
-    const { date, branch, key } = req?.body;
+    const { date, branch, timezone, key } = req?.body;
     if (!date) return res.status(400).json({ message: "Date is required" });
 
     let selected_branch = authorize?.branch;
@@ -66,9 +69,13 @@ const get_dashboard = async (req, res) => {
     }
 
     // Convert the received date into a valid Date object and extract the day range
-    const selectedDate = new Date(date);
-    const startOfDay = new Date(selectedDate.setHours(0, 0, 0, 0));
-    const endOfDay = new Date(selectedDate.setHours(23, 59, 59, 999));
+    // const selectedDate = new Date(date);
+    // const startOfDay = new Date(selectedDate.setHours(0, 0, 0, 0));
+    // const endOfDay = new Date(selectedDate.setHours(23, 59, 59, 999));
+
+    const selectedDate = moment.tz(date, timezone).startOf("day");
+    const startOfDay = selectedDate.toDate();
+    const endOfDay = selectedDate.endOf("day").toDate();
 
     // Run all count queries in parallel
     const [
@@ -521,6 +528,8 @@ const get_dashboard = async (req, res) => {
 
     grand_total = parseFloat(profit || 0) - parseFloat(loss || 0);
 
+    console.log(branch, "authorize");
+
     let data = {
       total_products,
       total_inventories,
@@ -591,6 +600,8 @@ const get_dashboard = async (req, res) => {
       inventory_requestes,
       //role
       role: authorize?.role,
+      user: authorize,
+      branch: "",
     };
 
     // Send response
@@ -1357,7 +1368,17 @@ const get_sales_reports = async (req, res) => {
     const authorize = authorization(req);
     if (!authorize) return unauthorized(res);
 
-    const { date, branch, customer } = req?.body;
+    const { date, branch, customer, timezone } = req?.body;
+
+    let selected_branch = new mongoose.Types.ObjectId(authorize?.branch);
+
+    if (branch == "ALL") {
+      selected_branch = "ALL";
+    } else {
+      selected_branch = new mongoose.Types.ObjectId(
+        branch ? branch : authorize?.branch
+      );
+    }
 
     let start, end;
 
@@ -1388,12 +1409,15 @@ const get_sales_reports = async (req, res) => {
     const queryConditions = {
       date: {
         $gte: start,
-        $lt: new Date(end.setDate(end.getDate() + 1)), // Include full day
+        $lt: new Date(end.setDate(end.getDate() + 1)),
       },
       ref: authorize.ref,
-      branch: branch ? branch : authorize.branch,
       status: 1,
     };
+
+    if (selected_branch !== "ALL") {
+      queryConditions.branch = selected_branch;
+    }
 
     // If customer is provided, filter by customer
     if (customer) {
@@ -1869,11 +1893,11 @@ const get_fast_moving_products_reports = async (req, res) => {
     const authorize = authorization(req);
     if (!authorize) return unauthorized(res);
 
-    const { date, branch, supplier } = req?.body;
+    const { date, branch, timezone, sort } = req?.body;
 
     let selected_branch = new mongoose.Types.ObjectId(authorize?.branch);
 
-    if (branch == "ALL") {
+    if (branch === "ALL") {
       selected_branch = "ALL";
     } else {
       selected_branch = new mongoose.Types.ObjectId(
@@ -1881,50 +1905,600 @@ const get_fast_moving_products_reports = async (req, res) => {
       );
     }
 
-    const queryConditions = { ref: authorize.ref };
+    const queryConditions = {
+      ref: authorize.ref,
+      status: 1,
+    };
+
     if (selected_branch !== "ALL") {
       queryConditions.branch = selected_branch;
     }
 
-    // Fetch all invoice details and populate description and product
-    const get_all_invoice_details = await invoices_details
-      .find({ ...queryConditions, status: 1 })
-      .populate({
-        path: "description",
-        populate: { path: "product", select: "name" }, // Populate product name
-      });
+    if (date?.start && date?.end) {
+      const start = moment
+        .tz(date.start, timezone)
+        .startOf("day")
+        .utc()
+        .toDate();
+      const end = moment.tz(date.end, timezone).endOf("day").utc().toDate();
+      queryConditions.created = { $gte: start, $lte: end };
+    }
 
-    let productSales = new Map(); // Store total sales per product
-    let grandTotalSold = 0; // Store grand total of all sold products
+    const get_all_invoice_details = await invoices_details
+      .find(queryConditions)
+      .populate([
+        {
+          path: "invoice", // assuming `invoice` is the field referencing the invoice document
+          match: { status: 1 }, // only include if the invoice has status 1
+          select: "_id", // only need the id
+        },
+        {
+          path: "description",
+          populate: { path: "product", select: "name" },
+        },
+      ])
+      .then((docs) => docs.filter((doc) => doc.invoice));
+
+    let productSales = new Map();
+    let grandTotalSold = 0;
+    let grandTotalPurchase = 0;
+    let grandTotalSale = 0;
+    let grandTotalPricePerUnit = 0;
+    let grandNetTotal = 0;
+    let grandTotalMargin = 0;
 
     for (const invoice of get_all_invoice_details) {
-      const productName = invoice.description?.product?.name; // Extract product name
+      const productName = invoice.description?.product?.name;
       if (!productName) continue;
+
+      const quantity = invoice.quantity || 0;
+      const purchasePrice = invoice.purchase_price || 0;
+      const salePrice = invoice.sale_price || 0;
+      const pricePerUnit = invoice.price_per_unit || 0;
 
       if (!productSales.has(productName)) {
         productSales.set(productName, {
-          productName: productName, // Store product name instead of ID
+          productName,
           totalSold: 0,
           totalInvoices: 0,
+          totalPurchasePrice: 0,
+          totalSalePrice: 0,
+          totalPricePerUnit: 0,
+          netTotal: 0,
+          margin: 0,
+          marginPercentage: 0,
         });
       }
 
-      let productData = productSales.get(productName);
-      productData.totalSold += invoice.quantity || 0; // Sum quantity
-      productData.totalInvoices += 1; // Count occurrences
+      const netAmount = (salePrice - pricePerUnit) * quantity;
 
-      grandTotalSold += invoice.quantity || 0; // Sum for grand total
+      const productData = productSales.get(productName);
+      productData.totalSold += quantity;
+      productData.totalInvoices += 1;
+      productData.totalPurchasePrice += purchasePrice * quantity;
+      productData.totalSalePrice += salePrice * quantity;
+      productData.totalPricePerUnit += pricePerUnit * quantity;
+      productData.netTotal += netAmount;
+
+      productData.margin =
+        productData.totalSalePrice - productData.totalPricePerUnit;
+      productData.marginPercentage = productData.totalSalePrice
+        ? (productData.margin / productData.totalSalePrice) * 100
+        : "0.00";
+
+      grandTotalSold += quantity;
+      grandTotalPurchase += purchasePrice * quantity;
+      grandTotalSale += salePrice * quantity;
+      grandTotalPricePerUnit += pricePerUnit * quantity;
+      grandNetTotal += netAmount;
+      grandTotalMargin += salePrice * quantity - purchasePrice * quantity;
     }
 
-    // Convert map to an array
-    let sortedProducts = [...productSales.values()].sort(
+    const sortedProducts = [...productSales.values()].sort(
       (a, b) => b.totalSold - a.totalSold
     );
 
-    // Send response with grand total
-    success_200(res, "", { grandTotalSold, data: sortedProducts });
+    if (sort === 0) {
+      // alphabet (a-z)
+      sortedProducts.sort((a, b) => a.productName.localeCompare(b.productName));
+    } else if (sort === 1) {
+      // alphabet (z-a)
+      sortedProducts.sort((a, b) => b.productName.localeCompare(a.productName));
+    } else if (sort === 2) {
+      // quantity (low)
+      sortedProducts.sort((a, b) => a.totalSold - b.totalSold);
+    } else if (sort === 3) {
+      // quantity (high)
+      sortedProducts.sort((a, b) => b.totalSold - a.totalSold);
+    } else if (sort === 4) {
+      // purchase_price (low)
+      sortedProducts.sort(
+        (a, b) => a.totalPurchasePrice - b.totalPurchasePrice
+      );
+    } else if (sort === 5) {
+      // purchase_price (high)
+      sortedProducts.sort(
+        (a, b) => b.totalPurchasePrice - a.totalPurchasePrice
+      );
+    } else if (sort === 6) {
+      // sales_price (low)
+      sortedProducts.sort((a, b) => a.totalSalePrice - b.totalSalePrice);
+    } else if (sort === 7) {
+      // sales_price (high)
+      sortedProducts.sort((a, b) => b.totalSalePrice - a.totalSalePrice);
+    } else if (sort === 8) {
+      // price_per_unit (low)
+      sortedProducts.sort((a, b) => a.totalPricePerUnit - b.totalPricePerUnit);
+    } else if (sort === 9) {
+      // price_per_unit (high)
+      sortedProducts.sort((a, b) => b.totalPricePerUnit - a.totalPricePerUnit);
+    } else if (sort === 10) {
+      // netTotal (low)
+      sortedProducts.sort((a, b) => a.netTotal - b.netTotal);
+    } else if (sort === 11) {
+      // netTotal (high)
+      sortedProducts.sort((a, b) => b.netTotal - a.netTotal);
+    } else if (sort === 10) {
+      // netTotal (low)
+      sortedProducts.sort((a, b) => a.netTotal - b.netTotal);
+    } else if (sort === 11) {
+      // netTotal (high)
+      sortedProducts.sort((a, b) => b.netTotal - a.netTotal);
+    } else if (sort === 12) {
+      // marginPercentage (low)
+      sortedProducts.sort((a, b) => a.marginPercentage - b.marginPercentage);
+    } else if (sort === 13) {
+      // marginPercentage (high)
+      sortedProducts.sort((a, b) => b.marginPercentage - a.marginPercentage);
+    }
+
+    success_200(res, "", {
+      grandTotalSold,
+      grandTotalPurchase,
+      grandTotalSale,
+      grandTotalPricePerUnit,
+      grandNetTotal,
+      grandTotalMargin,
+      data: sortedProducts,
+    });
   } catch (error) {
     catch_400(res, error.message);
+  }
+};
+
+const get_products_ageing_reports = async (req, res) => {
+  try {
+    const authorize = authorization(req);
+    if (!authorize) return unauthorized(res);
+
+    const { branch, timezone, sort, date } = req.body;
+
+    const selected_branch =
+      branch === "ALL"
+        ? "ALL"
+        : new mongoose.Types.ObjectId(branch || authorize?.branch);
+
+    const matchConditions = {
+      ref: authorize.ref,
+      status: 1,
+    };
+
+    if (selected_branch !== "ALL") {
+      matchConditions.branch = selected_branch;
+    }
+
+    let purchaseDateMatch = {};
+    if (date?.start && date?.end) {
+      const start = moment.tz(date.start, timezone).startOf("day").toDate();
+      const end = moment.tz(date.end, timezone).endOf("day").toDate();
+      purchaseDateMatch.date = { $gte: start, $lte: end };
+      purchaseDateMatch.status = 1;
+    }
+
+    // 1. Fetch all purchase details + purchase data
+    const purchaseDetailsRaw = await purchase_orders_details
+      .find(matchConditions)
+      .populate({
+        path: "purchase",
+        match: purchaseDateMatch,
+      });
+
+    const purchaseDetails = purchaseDetailsRaw.filter((pd) => pd?.purchase);
+
+    // 2. Get all inventory IDs used in purchase details
+    const inventoryIds = purchaseDetails
+      .map((item) => item?.inventory)
+      .filter(Boolean);
+
+    // 3. Fetch all relevant inventories with products in one go
+    const inventoryDocs = await inventories
+      .find({ _id: { $in: inventoryIds }, status: 1 })
+      .populate("product");
+
+    // 4. Create a quick lookup map for inventories
+    const inventoryMap = new Map(
+      inventoryDocs.map((inv) => [inv._id.toString(), inv])
+    );
+
+    // 5. Process all data fast in one pass
+    const now = new Date();
+    const allProductAgeing = purchaseDetails
+      .map((value) => {
+        const inv = inventoryMap.get(value?.inventory?.toString());
+
+        const stock = isFinite(inv?.stock) ? parseFloat(inv?.stock) : 0;
+
+        if (!inv || parseFloat(stock?.toFixed?.(3)) <= 0) return null;
+
+        const purchase_stock = parseFloat(value?.delivered || 0);
+        const current_stock = parseFloat(stock || 0);
+        const total_sold = purchase_stock - current_stock;
+        const movement_percent =
+          purchase_stock > 0
+            ? parseFloat(((total_sold / purchase_stock) * 100).toFixed(2))
+            : 0;
+
+        return {
+          name: inv?.product?.name,
+          batch: inv?.number,
+          purchase_date: value?.purchase?.date,
+          purchase_stock,
+          current_stock,
+          total_sold,
+          movement_percent,
+          days: Math.floor(
+            (now - new Date(value?.purchase?.date)) / (1000 * 60 * 60 * 24)
+          ),
+        };
+      })
+      .filter(Boolean); // Remove nulls
+
+    allProductAgeing.sort(
+      (a, b) => parseFloat(a.total_sold) - parseFloat(b.total_sold)
+    );
+
+    if (sort == 0) {
+      allProductAgeing.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (sort == 1) {
+      allProductAgeing.sort((a, b) => b.name.localeCompare(a.name));
+    } else if (sort == 2) {
+      allProductAgeing.sort((a, b) => parseFloat(a.days) - parseFloat(b.days));
+    } else if (sort == 3) {
+      allProductAgeing.sort((a, b) => parseFloat(b.days) - parseFloat(a.days));
+    } else if (sort == 4) {
+      allProductAgeing.sort(
+        (a, b) => parseFloat(a.purchase_stock) - parseFloat(b.purchase_stock)
+      );
+    } else if (sort == 5) {
+      allProductAgeing.sort(
+        (a, b) => parseFloat(b.purchase_stock) - parseFloat(a.purchase_stock)
+      );
+    } else if (sort == 6) {
+      allProductAgeing.sort(
+        (a, b) => parseFloat(a.current_stock) - parseFloat(b.current_stock)
+      );
+    } else if (sort == 7) {
+      allProductAgeing.sort(
+        (a, b) => parseFloat(b.current_stock) - parseFloat(a.current_stock)
+      );
+    } else if (sort == 8) {
+      allProductAgeing.sort(
+        (a, b) => parseFloat(a.total_sold) - parseFloat(b.total_sold)
+      );
+    } else if (sort == 9) {
+      allProductAgeing.sort(
+        (a, b) => parseFloat(b.total_sold) - parseFloat(a.total_sold)
+      );
+    } else if (sort == 10) {
+      allProductAgeing.sort(
+        (a, b) =>
+          parseFloat(a.movement_percent) - parseFloat(b.movement_percent)
+      );
+    } else if (sort == 11) {
+      allProductAgeing.sort(
+        (a, b) =>
+          parseFloat(b.movement_percent) - parseFloat(a.movement_percent)
+      );
+    }
+
+    success_200(res, "Batch-wise product ageing fetched", allProductAgeing);
+  } catch (err) {
+    catch_400(res, err.message);
+  }
+};
+
+const get_products_received_ageing_reports = async (req, res) => {
+  try {
+    const authorize = authorization(req);
+    if (!authorize) return unauthorized(res);
+
+    const { branch, timezone, sort, date } = req.body;
+
+    const selected_branch =
+      branch === "ALL"
+        ? "ALL"
+        : new mongoose.Types.ObjectId(branch || authorize?.branch);
+
+    const matchConditions = {
+      ref: authorize.ref,
+      status: 1,
+    };
+
+    if (selected_branch !== "ALL") {
+      matchConditions.branch = selected_branch;
+    }
+
+    let purchaseDateMatch = {};
+    if (date?.start && date?.end) {
+      const start = moment.tz(date.start, timezone).startOf("day").toDate();
+      const end = moment.tz(date.end, timezone).endOf("day").toDate();
+      purchaseDateMatch.date = { $gte: start, $lte: end };
+      purchaseDateMatch.status = 1;
+    }
+
+    const purchaseDetailsRaw = await received_details
+      .find(matchConditions)
+      .populate({
+        path: "purchase",
+        match: purchaseDateMatch,
+      });
+
+    const purchaseDetails = purchaseDetailsRaw.filter((pd) => pd?.purchase);
+
+    // 2. Get all inventory IDs used in purchase details
+    const inventoryIds = purchaseDetails
+      .map((item) => item?.inventory)
+      .filter(Boolean);
+
+    // 3. Fetch all relevant inventories with products in one go
+    const inventoryDocs = await inventories
+      .find({ _id: { $in: inventoryIds }, status: 1 })
+      .populate("product");
+
+    // 4. Create a quick lookup map for inventories
+    const inventoryMap = new Map(
+      inventoryDocs.map((inv) => [inv._id.toString(), inv])
+    );
+
+    // 5. Process all data fast in one pass
+    const now = new Date();
+    const allProductAgeing = purchaseDetails
+      .map((value) => {
+        const inv = inventoryMap.get(value?.inventory?.toString());
+
+        const stock = isFinite(inv?.stock) ? parseFloat(inv?.stock) : 0;
+
+        if (!inv || parseFloat(stock?.toFixed?.(3)) <= 0) return null;
+
+        const purchase_stock = parseFloat(value?.delivered || 0);
+        const current_stock = parseFloat(stock || 0);
+        const total_sold =
+          parseFloat(purchase_stock || 0) - parseFloat(current_stock || 0);
+        const movement_percent =
+          purchase_stock > 0
+            ? parseFloat(((total_sold / purchase_stock) * 100).toFixed(3))
+            : 0;
+
+        return {
+          name: inv?.product?.name,
+          batch: inv?.number,
+          purchase_date: value?.purchase?.date,
+          purchase_stock,
+          current_stock,
+          total_sold,
+          movement_percent,
+          days: Math.floor(
+            (now - new Date(value?.purchase?.date)) / (1000 * 60 * 60 * 24)
+          ),
+        };
+      })
+      .filter(Boolean); // Remove nulls
+
+    allProductAgeing.sort(
+      (a, b) => parseFloat(a.total_sold) - parseFloat(b.total_sold)
+    );
+
+    if (sort == 0) {
+      allProductAgeing.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (sort == 1) {
+      allProductAgeing.sort((a, b) => b.name.localeCompare(a.name));
+    } else if (sort == 2) {
+      allProductAgeing.sort((a, b) => parseFloat(a.days) - parseFloat(b.days));
+    } else if (sort == 3) {
+      allProductAgeing.sort((a, b) => parseFloat(b.days) - parseFloat(a.days));
+    } else if (sort == 4) {
+      allProductAgeing.sort(
+        (a, b) => parseFloat(a.purchase_stock) - parseFloat(b.purchase_stock)
+      );
+    } else if (sort == 5) {
+      allProductAgeing.sort(
+        (a, b) => parseFloat(b.purchase_stock) - parseFloat(a.purchase_stock)
+      );
+    } else if (sort == 6) {
+      allProductAgeing.sort(
+        (a, b) => parseFloat(a.current_stock) - parseFloat(b.current_stock)
+      );
+    } else if (sort == 7) {
+      allProductAgeing.sort(
+        (a, b) => parseFloat(b.current_stock) - parseFloat(a.current_stock)
+      );
+    } else if (sort == 8) {
+      allProductAgeing.sort(
+        (a, b) => parseFloat(a.total_sold) - parseFloat(b.total_sold)
+      );
+    } else if (sort == 9) {
+      allProductAgeing.sort(
+        (a, b) => parseFloat(b.total_sold) - parseFloat(a.total_sold)
+      );
+    } else if (sort == 10) {
+      allProductAgeing.sort(
+        (a, b) =>
+          parseFloat(a.movement_percent) - parseFloat(b.movement_percent)
+      );
+    } else if (sort == 11) {
+      allProductAgeing.sort(
+        (a, b) =>
+          parseFloat(b.movement_percent) - parseFloat(a.movement_percent)
+      );
+    }
+
+    success_200(res, "Batch-wise product ageing fetched", allProductAgeing);
+  } catch (err) {
+    catch_400(res, err.message);
+  }
+};
+
+// const get_net_sales_reports = async (req, res) => {
+//   try {
+//     const authorize = authorization(req);
+//     if (!authorize) return unauthorized(res);
+
+//     const { branch, timezone, sort, date } = req.body;
+
+//     const selected_branch =
+//       branch === "ALL"
+//         ? "ALL"
+//         : new mongoose.Types.ObjectId(branch || authorize?.branch);
+
+//     const matchConditions = {
+//       ref: authorize.ref,
+//       status: 1,
+//     };
+
+//     if (selected_branch !== "ALL") {
+//       matchConditions.branch = selected_branch;
+//     }
+
+//     if (date?.start && date?.end) {
+//       const start = moment.tz(date.start, timezone).startOf("day").toDate();
+//       const end = moment.tz(date.end, timezone).endOf("day").toDate();
+//       matchConditions.date = { $gte: start, $lte: end };
+//       matchConditions.status = 1;
+//     }
+
+//     const allInvoice = await invoices
+//       .find(matchConditions)
+//       ?.populate("customer")
+//       ?.populate("branch");
+
+//     const allInvoiceReports = [];
+//     for (value of allInvoice) {
+//       const invoiceDetails = await invoices_details
+//         ?.find({
+//           invoice: value?._id,
+//         })
+//         ?.populate("description");
+
+//       let allInvoiceDetails = [];
+//       let grand_total_net_profit = 0;
+//       for (v of invoiceDetails) {
+//         let net_profit =
+//           parseFloat(v?.sale_price || 0) - parseFloat(v?.price_per_unit || 0);
+
+//         let total_net_profit =
+//           parseFloat(net_profit || 0) * parseFloat(v?.quantity || 0);
+
+//         grand_total_net_profit += total_net_profit;
+
+//         allInvoiceDetails?.push({
+//           ...v?.toObject(),
+//           total_net_profit: parseFloat(total_net_profit || 0),
+//         });
+//       }
+
+//       allInvoiceReports?.push({
+//         ...value?.toObject(),
+//         details: allInvoiceDetails,
+//         grand_total_net_profit: grand_total_net_profit,
+//       });
+//     }
+
+//     success_200(res, "", allInvoiceReports);
+//   } catch (err) {
+//     catch_400(res, err.message);
+//   }
+// };
+
+const get_net_sales_reports = async (req, res) => {
+  try {
+    const authorize = authorization(req);
+    if (!authorize) return unauthorized(res);
+
+    const { branch, timezone, date } = req.body;
+
+    const selected_branch =
+      branch === "ALL"
+        ? "ALL"
+        : new mongoose.Types.ObjectId(branch || authorize?.branch);
+
+    // Build match conditions for invoices
+    const matchConditions = {
+      ref: authorize.ref,
+      status: 1,
+    };
+
+    if (selected_branch !== "ALL") {
+      matchConditions.branch = selected_branch;
+    }
+
+    if (date?.start && date?.end) {
+      const start = moment.tz(date.start, timezone).startOf("day").toDate();
+      const end = moment.tz(date.end, timezone).endOf("day").toDate();
+      matchConditions.date = { $gte: start, $lte: end };
+    }
+
+    // Fetch all invoices in one go
+    const allInvoice = await invoices
+      .find(matchConditions)
+      .populate("customer")
+      .populate("branch")
+      .lean();
+
+    const invoiceIds = allInvoice.map((inv) => inv._id);
+
+    // Fetch all invoice details for those invoices at once
+    const allDetails = await invoices_details
+      .find({ invoice: { $in: invoiceIds } })
+      .populate("description")
+      .lean();
+
+    // Group details by invoice ID
+    const groupedDetails = {};
+    for (let detail of allDetails) {
+      const net_profit =
+        parseFloat(detail.sale_price || 0) -
+        parseFloat(detail.price_per_unit || 0);
+      const total_net_profit = net_profit * parseFloat(detail.quantity || 0);
+
+      const enrichedDetail = {
+        ...detail,
+        total_net_profit,
+      };
+
+      if (!groupedDetails[detail.invoice]) {
+        groupedDetails[detail.invoice] = [];
+      }
+      groupedDetails[detail.invoice].push(enrichedDetail);
+    }
+
+    // Combine invoice and detail data
+    const allInvoiceReports = allInvoice.map((inv) => {
+      const details = groupedDetails[inv._id] || [];
+      const grand_total_net_profit = details.reduce(
+        (acc, cur) => acc + (cur.total_net_profit || 0),
+        0
+      );
+
+      return {
+        ...inv,
+        details,
+        grand_total_net_profit,
+      };
+    });
+
+    return success_200(res, "", allInvoiceReports);
+  } catch (err) {
+    return catch_400(res, err.message);
   }
 };
 
@@ -1941,4 +2515,7 @@ module.exports = {
   get_sales_return_reports,
   get_purchase_return_reports,
   get_fast_moving_products_reports,
+  get_net_sales_reports,
+  get_products_ageing_reports,
+  get_products_received_ageing_reports,
 };

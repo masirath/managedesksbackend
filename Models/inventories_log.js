@@ -7,7 +7,7 @@ const inventories_log_schema = mongoose.Schema({
   },
   number: {
     required: true,
-    type: Number,
+    type: String,
   },
   purchase: {
     required: false,
