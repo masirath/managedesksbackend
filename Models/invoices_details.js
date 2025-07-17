@@ -15,10 +15,6 @@ const invoices_details_schema = mongoose.Schema({
     required: true,
     type: String,
   },
-  summary: {
-    required: false,
-    type: String,
-  },
   unit: {
     required: false,
     type: String,
@@ -67,6 +63,16 @@ const invoices_details_schema = mongoose.Schema({
     default: 0,
   },
   sale_price: {
+    required: true,
+    type: Number,
+    default: 0,
+  },
+  discount_price: {
+    required: true,
+    type: Number,
+    default: 0,
+  },
+  discount_percentage: {
     required: true,
     type: Number,
     default: 0,

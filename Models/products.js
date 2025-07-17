@@ -38,6 +38,18 @@ const products_schema = mongoose.Schema({
     type: Number,
     default: 0,
   },
+  sale_price: {
+    required: false,
+    type: Number,
+  },
+  wholesale_price: {
+    required: false,
+    type: Number,
+  },
+  purchase_price: {
+    required: false,
+    type: Number,
+  },
   tax: {
     required: true,
     type: Number,

@@ -108,7 +108,7 @@ const create_sales_return = async (req, res) => {
         // !customer ||
         !assigned_number ||
         !date ||
-        !due_date ||
+        // !due_date ||
         !details?.length > 0
       ) {
         incomplete_400(res);
@@ -580,7 +580,7 @@ const update_sales_return = async (req, res) => {
         !id ||
         !assigned_number ||
         !date ||
-        !due_date ||
+        // !due_date ||
         !details?.length > 0
       ) {
         incomplete_400(res);
@@ -1234,7 +1234,8 @@ const get_sales_return = async (req, res) => {
         const selected_sales_return = await sales_returns
           ?.findById(id)
           ?.populate("customer")
-          ?.populate("branch");
+          ?.populate("branch")
+          ?.populate("created_by");
 
         if (!selected_sales_return || selected_sales_return?.status == 2) {
           failed_400(res, "sales_return Order not found");
@@ -1369,7 +1370,8 @@ const get_all_sales_returns = async (req, res) => {
       .sort(sortOption)
       .skip((page_number - 1) * page_limit)
       .limit(page_limit)
-      .populate("customer");
+      .populate("customer")
+      .populate("created_by");
 
     const totalPages = Math.ceil(totalCount / page_limit);
 

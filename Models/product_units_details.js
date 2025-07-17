@@ -16,6 +16,18 @@ const product_units_details_schema = mongoose.Schema({
     type: Number,
     default: 0,
   },
+  purchase_price: {
+    required: false,
+    type: Number,
+  },
+  sale_price: {
+    required: false,
+    type: Number,
+  },
+  wholesale_price: {
+    required: false,
+    type: Number,
+  },
   status: {
     required: true,
     type: Number,

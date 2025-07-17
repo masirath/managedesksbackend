@@ -31,6 +31,10 @@ const inventories_units_details_schema = mongoose.Schema({
     type: Number,
     default: 0,
   },
+  wholesale_price: {
+    required: false,
+    type: Number,
+  },
   stock: {
     required: true,
     type: Number,

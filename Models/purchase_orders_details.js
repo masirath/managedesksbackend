@@ -48,6 +48,16 @@ const purchase_orders_details_schema = mongoose.Schema({
     type: Number,
     default: 0,
   },
+  discount_price: {
+    required: true,
+    type: Number,
+    default: 0,
+  },
+  discount_percentage: {
+    required: true,
+    type: Number,
+    default: 0,
+  },
   free: {
     required: true,
     type: Number,
@@ -62,6 +72,10 @@ const purchase_orders_details_schema = mongoose.Schema({
     required: false,
     type: String,
   },
+  batch: {
+    required: false,
+    type: String,
+  },
   price_per_unit: {
     required: true,
     type: Number,
@@ -71,6 +85,10 @@ const purchase_orders_details_schema = mongoose.Schema({
     required: true,
     type: Number,
     default: 0,
+  },
+  wholesale_price: {
+    required: false,
+    type: Number,
   },
   expiry_date: {
     required: false,

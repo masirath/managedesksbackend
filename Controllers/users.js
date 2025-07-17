@@ -168,6 +168,7 @@ const signup = async (req, res) => {
             email: email,
             country: country,
             status: 403,
+            billing: 0,
             ref: assigned_number,
             created: new Date(),
           });
@@ -247,8 +248,7 @@ const signin = async (req, res) => {
               ref: user.ref,
               branch: user.branch,
             },
-            SECRET_KEY,
-           //{ expiresIn: '1d' } if we turn on the token have validty
+            SECRET_KEY
           );
 
           const data = {
@@ -403,7 +403,7 @@ const update_user = async (req, res) => {
             selected_user.name = name;
             selected_user.phone = phone;
             selected_user.email = email;
-            // selected_user.password = hashed_password;
+            selected_user.password = hashed_password;
             // selected_user.branches = branches;
             selected_user.role = role;
             selected_user.status = status ? status : 0;

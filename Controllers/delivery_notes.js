@@ -83,10 +83,12 @@ const create_delivery_note = async (req, res) => {
     const saved_note = await delivery.save();
     let embeddedDetails = [];
     let item_count = 0;
-    
+
     for (let item of details) {
-      const product = await products.findById(item.description).populate("unit");
-    
+      const product = await products
+        .findById(item.description)
+        .populate("unit");
+
       if (product) {
         // Save to delivery_note_details collection
         const detail = new delivery_note_details({
@@ -104,10 +106,10 @@ const create_delivery_note = async (req, res) => {
           created: new Date(),
           created_by: authorize?.id,
         });
-    
+
         await detail.save();
         item_count++;
-    
+
         // Embed into delivery_note document
         embeddedDetails.push({
           description: product._id,
@@ -120,13 +122,12 @@ const create_delivery_note = async (req, res) => {
         });
       }
     }
-    
 
     if (item_count === details.length) {
       saved_note.total_items = item_count;
-      saved_note.details = embeddedDetails; 
+      saved_note.details = embeddedDetails;
       await saved_note.save();
-      
+
       return success_200(res, "Delivery Note created successfully");
     } else {
       return failed_400(res, "Failed to create all delivery note items");

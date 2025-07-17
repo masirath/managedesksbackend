@@ -11,6 +11,9 @@ const {
   get_purchase_reports,
   get_purchase_return_reports,
   get_fast_moving_products_reports,
+  get_products_ageing_reports,
+  get_products_received_ageing_reports,
+  get_net_sales_reports,
 } = require("../Controllers/dashboard");
 const dashboard = express.Router();
 
@@ -48,5 +51,14 @@ dashboard.post(
   "/api/get-fast-moving-products-reports",
   get_fast_moving_products_reports
 );
+
+dashboard.post("/api/get-products-ageing-reports", get_products_ageing_reports);
+
+dashboard.post(
+  "/api/get-products-received-ageing-reports",
+  get_products_received_ageing_reports
+);
+
+dashboard.post("/api/get-net-sales-reports", get_net_sales_reports);
 
 module.exports = dashboard;

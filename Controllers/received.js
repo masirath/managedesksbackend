@@ -86,557 +86,784 @@ const get_next_inventories = async (req, res, number) => {
   }
 };
 
+// const create_receive = async (req, res) => {
+//   try {
+//     const authorize = authorization(req);
+//     if (authorize) {
+//       const {
+//         transfer,
+//         supplier,
+//         number,
+//         date,
+//         due_date,
+//         details,
+//         discount,
+//         delivery,
+//         delivery_status,
+//         delivery_date,
+//         payment_status,
+//         payment_types,
+//         payments,
+//         status,
+//         branch,
+//       } = req?.body;
+
+//       let new_number = await get_next_receive(req, res, 1000);
+//       let assigned_number = number ? number : new_number;
+
+//       if (
+//         !supplier ||
+//         !assigned_number ||
+//         !date ||
+//         !due_date ||
+//         !details?.length > 0
+//       ) {
+//         incomplete_400(res);
+//       } else {
+//         const selected_transfer = await transfers?.findById(transfer);
+
+//         if (selected_transfer?.received) {
+//           failed_400(res, "Transfer already done");
+//         } else {
+//           const selected_purchase_number = await transfers?.findOne({
+//             _id: { $ne: transfer },
+//             number: assigned_number,
+//             // branch: branch ? branch : authorize?.branch,
+//             ref: authorize?.ref,
+//             status: 1,
+//           });
+
+//           if (selected_purchase_number) {
+//             failed_400(res, "Received number exists");
+//           } else {
+//             //create purchase order
+//             const receive = new received({
+//               supplier: supplier,
+//               number: assigned_number,
+//               date: date,
+//               due_date: due_date,
+//               subtotal: 0,
+//               taxamount: 0,
+//               discount: 0,
+//               delivery: 0,
+//               delivery_status: 0,
+//               delivery_date: "",
+//               payment_status: 0,
+//               total: 0,
+//               status: status ? status : 0,
+//               ref: authorize?.ref,
+//               branch: branch ? branch : authorize?.branch,
+//               created: new Date(),
+//               created_by: authorize?.id,
+//             });
+
+//             const receive_save = await receive?.save();
+
+//             //purchase order details
+//             let purchase_subtotal = 0;
+//             let purchase_taxamount = 0;
+//             let purchase_total = 0;
+//             let delivery_count = 0;
+//             let count = 0;
+
+//             if (details?.length > 0) {
+//               for (value of details) {
+//                 // const selected_product = await products
+//                 //   ?.findById?.(value?.description)
+//                 //   ?.populate({
+//                 //     path: "unit",
+//                 //     match: { status: { $ne: 2 } },
+//                 //   });
+
+//                 const selected_product = await products
+//                   ?.findOne?.({ name: value?.name })
+//                   ?.populate({
+//                     path: "unit",
+//                     match: { status: { $ne: 2 } },
+//                   });
+
+//                 if (selected_product) {
+//                   let purchase_unit = value?.unit ? value?.unit : "";
+//                   let purchase_unit_name = value?.unit_name
+//                     ? value?.unit_name
+//                     : "";
+//                   let purchase_price = value?.purchase_price
+//                     ? value?.purchase_price
+//                     : 0;
+//                   let purchase_conversion = value?.conversion
+//                     ? value?.conversion
+//                     : 0;
+//                   let purchase_quantity = value?.quantity ? value?.quantity : 0;
+//                   let purchase_delivered = value?.delivered
+//                     ? value?.delivered
+//                     : 0;
+//                   let purchase_free = value?.free ? value?.free : 0;
+//                   let purchase_tax = value?.tax ? value?.tax : 0;
+//                   let purchase_barcode = value?.barcode ? value?.barcode : "";
+//                   let purchase_price_per_unit = 0;
+//                   let purchase_sale_price = value?.sale_price
+//                     ? value?.sale_price
+//                     : 0;
+//                   let purchase_expiry_date = value?.expiry_date
+//                     ? value?.expiry_date
+//                     : "";
+
+//                   let price =
+//                     parseFloat(purchase_quantity) * parseFloat(purchase_price);
+//                   let tax_amount =
+//                     parseFloat(price) * (parseFloat(purchase_tax) / 100);
+//                   let total = parseFloat(price) + parseFloat(tax_amount);
+
+//                   let total_quantity =
+//                     parseFloat(purchase_quantity) + parseFloat(purchase_free);
+//                   purchase_delivered =
+//                     parseFloat(purchase_delivered) <= parseFloat(total_quantity)
+//                       ? purchase_delivered
+//                       : total_quantity;
+//                   purchase_price_per_unit =
+//                     parseFloat(total) / parseFloat(total_quantity);
+
+//                   //delivery status count
+//                   if (
+//                     parseFloat(total_quantity) == parseFloat(purchase_delivered)
+//                   ) {
+//                     delivery_count++;
+//                   }
+
+//                   let selected_unit = "";
+//                   let unit_ids = [];
+
+//                   //unit details
+//                   let purchase_unit_details_options = [];
+//                   let unit_details_options = value?.unit_details_options;
+
+//                   if (unit_details_options?.length > 0) {
+//                     // if (selected_product?._id == value?.unit) {
+//                     if (selected_product?.name == value?.name) {
+//                       const selectedDetails = await Promise.all(
+//                         unit_details_options?.map(async (v, index) => {
+//                           const selected_product_units_detail =
+//                             await product_units_details
+//                               ?.findById(v?._id)
+//                               ?.populate("name");
+//                           // const selected_product_units_detail =
+//                           //   await product_units_details
+//                           //     ?.findOne(v?.unit_name)
+//                           //     ?.populate("name");
+
+//                           return {
+//                             name: v?.name,
+//                             quantity: v?.quantity ? v?.quantity : 0,
+//                             // name: selected_product_units_detail?.name?.name,
+//                             // quantity: selected_product_units_detail?.quantity
+//                             //   ? selected_product_units_detail?.quantity
+//                             //   : 0,
+//                             price_per_unit: purchase_price_per_unit
+//                               ? parseFloat(purchase_price_per_unit) /
+//                                 parseFloat(v?.conversion)
+//                               : 0,
+//                             conversion: v?.conversion ? v?.conversion : 0,
+//                             sale_price: v?.sale_price ? v?.sale_price : 0,
+//                             unit_quantity: total_quantity
+//                               ? parseFloat(v?.conversion) *
+//                                 parseFloat(total_quantity)
+//                               : 0,
+//                             unit_delivered: purchase_delivered
+//                               ? parseFloat(v?.conversion) *
+//                                 parseFloat(purchase_delivered)
+//                               : 0,
+//                           };
+//                         })
+//                       );
+//                       purchase_unit_details_options = [...selectedDetails];
+//                     } else {
+//                       for (value of unit_details_options) {
+//                         unit_ids?.push(value?._id);
+//                       }
+
+//                       if (unit_ids?.includes(value?.unit)) {
+//                         selected_unit =
+//                           unit_details_options?.[unit_ids?.indexOf(value?._id)];
+
+//                         purchase_unit = selected_unit?.name?.name;
+//                         purchase_conversion = selected_unit?.conversion;
+
+//                         if (
+//                           purchase_conversion &&
+//                           parseFloat(purchase_quantity) +
+//                             parseFloat(purchase_free) >=
+//                             purchase_conversion
+//                         ) {
+//                           purchase_conversion =
+//                             parseFloat(purchase_conversion) - 1;
+//                         }
+//                       }
+//                     }
+//                   }
+
+//                   //inventories create
+//                   let new_number = await get_next_inventories(req, res, 1000);
+//                   let assigned_innevtory_number = value?.batch
+//                     ? value?.batch
+//                     : new_number;
+
+//                   const selected_inventory_number = await inventories?.findOne({
+//                     number: assigned_innevtory_number,
+//                     branch: authorize?.branch,
+//                   });
+
+//                   // if (selected_inventory_number) {
+//                   //   failed_400(res, "Inventory  exists");
+//                   // } else {
+//                   const selected_product_units_detail =
+//                     await product_units_details?.find({
+//                       product: selected_product?._id,
+//                     });
+
+//                   let inventory_purchase_price = value?.purchase_price
+//                     ? value?.purchase_price
+//                     : 0;
+//                   let inventory_price_per_unit = value?.price_per_unit
+//                     ? value?.price_per_unit
+//                     : 0;
+//                   let inventory_sale_price = value?.sale_price
+//                     ? value?.sale_price
+//                     : 0;
+//                   let inventory_tax = value?.tax ? value?.tax : 0;
+//                   let inventory_stock = value?.delivered ? value?.delivered : 0;
+//                   let inventory_unit_details_options =
+//                     purchase_unit_details_options;
+
+//                   // if (selected_product?._id == value?.unit) {
+//                   if (selected_product?.name == value?.name) {
+//                     inventory_purchase_price = inventory_purchase_price;
+//                     inventory_sale_price = inventory_sale_price;
+//                     inventory_tax = inventory_tax;
+//                     inventory_stock = inventory_stock;
+//                     inventory_price_per_unit = inventory_price_per_unit;
+//                     inventory_unit_details_options =
+//                       inventory_unit_details_options;
+//                   } else {
+//                     inventory_purchase_price = 0;
+//                     inventory_price_per_unit = 0;
+//                     inventory_sale_price = 0;
+//                     inventory_tax = inventory_tax;
+//                     inventory_stock =
+//                       parseFloat(value?.delivered || 0) /
+//                       parseFloat(value?.conversion || 0);
+//                     inventory_unit_details_options =
+//                       selected_product_units_detail;
+//                   }
+
+//                   const inventory = new inventories({
+//                     number: assigned_innevtory_number,
+//                     // purchase: receive_save?._id,
+//                     receive: receive_save?._id,
+//                     // product: value?.description,
+//                     product: selected_product?._id,
+//                     purchase_price: inventory_purchase_price,
+//                     price_per_unit: inventory_price_per_unit,
+//                     sale_price: inventory_sale_price,
+//                     tax: inventory_tax,
+//                     stock: inventory_stock,
+//                     manufacture_date: value?.manufacture_date,
+//                     expiry_date: value?.expiry_date,
+//                     barcode: value?.barcode,
+//                     status: status ? status : 0,
+//                     ref: authorize?.ref,
+//                     branch: branch ? branch : authorize?.branch,
+//                     created: new Date(),
+//                     created_by: authorize?.id,
+//                   });
+//                   const inventory_save = await inventory?.save();
+
+//                   //purchase order details
+//                   const receive_detail = new received_details({
+//                     purchase: receive_save?._id,
+//                     inventory: inventory_save?._id,
+//                     description: selected_product?._id,
+//                     name: selected_product?.name,
+//                     unit: purchase_unit,
+//                     unit_name: purchase_unit_name,
+//                     purchase_price: purchase_price,
+//                     conversion: purchase_conversion,
+//                     quantity: purchase_quantity,
+//                     delivered: purchase_delivered,
+//                     free: purchase_free,
+//                     tax: purchase_tax,
+//                     barcode: purchase_barcode,
+//                     price_per_unit: purchase_price_per_unit,
+//                     sale_price: purchase_sale_price,
+//                     expiry_date: purchase_expiry_date,
+//                     tax_amount: tax_amount,
+//                     total: total,
+//                     status: status ? status : 0,
+//                     ref: authorize?.ref,
+//                     branch: branch ? branch : authorize?.branch,
+//                     created: new Date(),
+//                     created_by: authorize?.id,
+//                   });
+
+//                   const receive_detail_save = await receive_detail?.save();
+
+//                   //inventory units details
+//                   if (inventory_unit_details_options?.length > 0) {
+//                     for (v of inventory_unit_details_options) {
+//                       if (v?._id == value?.unit) {
+//                         const inventories_units_detail =
+//                           new inventories_units_details({
+//                             inventory: inventory_save?._id,
+//                             name: value?.unit_name,
+//                             conversion: value?.conversion,
+//                             purchase_price: value?.purchase_price,
+//                             price_per_unit: value?.price_per_unit,
+//                             sale_price: value?.sale_price,
+//                             stock: value?.delivered,
+//                             status: status ? status : 0,
+//                             ref: authorize?.ref,
+//                             branch: branch ? branch : authorize?.branch,
+//                             created: new Date(),
+//                             created_by: authorize?.id,
+//                           });
+
+//                         const inventories_units_detail_save =
+//                           await inventories_units_detail?.save();
+//                       } else {
+//                         const inventories_units_detail =
+//                           new inventories_units_details({
+//                             inventory: inventory_save?._id,
+//                             name: v?.name,
+//                             conversion: v?.conversion,
+//                             purchase_price: v?.price_per_unit,
+//                             price_per_unit: v?.price_per_unit,
+//                             sale_price: v?.sale_price,
+//                             stock: v?.unit_delivered,
+//                             status: status ? status : 0,
+//                             ref: authorize?.ref,
+//                             branch: branch ? branch : authorize?.branch,
+//                             created: new Date(),
+//                             created_by: authorize?.id,
+//                           });
+
+//                         const inventories_units_detail_save =
+//                           await inventories_units_detail?.save();
+
+//                         //purchase order unit details
+//                         const receive_unit_detail = new received_units_details({
+//                           details: receive_detail_save?._id,
+//                           inventory_unit: inventories_units_detail_save?._id,
+//                           name: v?.name,
+//                           quantity: v?.quantity,
+//                           purchase_price: v?.price_per_unit,
+//                           price_per_unit: v?.price_per_unit,
+//                           sale_price: v?.sale_price,
+//                           conversion: v?.conversion,
+//                           unit_quantity: v?.unit_quantity,
+//                           unit_delivered: v?.unit_delivered,
+//                           status: status ? status : 0,
+//                           ref: authorize?.ref,
+//                           branch: branch ? branch : authorize?.branch,
+//                           created: new Date(),
+//                           created_by: authorize?.id,
+//                         });
+
+//                         const receive_unit_detail_save =
+//                           receive_unit_detail?.save();
+//                       }
+//                     }
+//                   }
+//                   // }
+
+//                   purchase_subtotal =
+//                     parseFloat(purchase_subtotal) + parseFloat(price);
+//                   purchase_taxamount =
+//                     parseFloat(purchase_taxamount) + parseFloat(tax_amount);
+//                   purchase_total =
+//                     parseFloat(purchase_total) + parseFloat(total);
+
+//                   count++;
+//                 }
+//               }
+
+//               //total update
+//               if (count == details?.length) {
+//                 const selected_receive = await received?.findById(
+//                   receive_save?._id
+//                 );
+
+//                 if (selected_receive) {
+//                   //delivery status
+//                   let data_delivery_status = delivery_status
+//                     ? parseFloat(delivery_status || 0)
+//                     : 0;
+//                   let data_delivery_date = delivery_date ? delivery_date : "";
+
+//                   if (parseFloat(data_delivery_status) == 2) {
+//                     if (parseFloat(delivery_count) == details?.length) {
+//                       data_delivery_status = 2;
+//                     } else if (
+//                       parseFloat(delivery_count) > 0 &&
+//                       parseFloat(delivery_count) < details?.length
+//                     ) {
+//                       data_delivery_status = 1;
+//                       data_delivery_date = "";
+//                     } else {
+//                       data_delivery_status = 0;
+//                       data_delivery_date = "";
+//                     }
+//                   }
+
+//                   //grand total
+//                   let purchase_discount = 0;
+//                   if (discount) {
+//                     if (discount <= purchase_total) {
+//                       purchase_discount = discount;
+//                     }
+//                   }
+//                   let purchase_delivery = delivery ? delivery : 0;
+
+//                   let grand_total =
+//                     parseFloat(purchase_total) +
+//                     parseFloat(purchase_delivery) -
+//                     parseFloat(purchase_discount);
+
+//                   //payment status
+//                   let purchase_payment_types = payment_types
+//                     ? JSON?.parse(payment_types)
+//                     : "";
+//                   let purchase_payments = payments ? JSON?.parse(payments) : "";
+
+//                   let purchase_paid = 0;
+//                   let receive_payment_details = [];
+//                   if (purchase_payment_types?.length > 0) {
+//                     for (value of purchase_payment_types) {
+//                       let purchase_payment_id = purchase_payments[value]?.id
+//                         ? purchase_payments[value]?.id
+//                         : "";
+//                       let purchase_payment_amount = purchase_payments[value]
+//                         ?.amount
+//                         ? parseFloat(purchase_payments[value]?.amount)
+//                         : 0;
+
+//                       purchase_paid =
+//                         parseFloat(purchase_paid) +
+//                         parseFloat(purchase_payment_amount);
+
+//                       receive_payment_details?.push({
+//                         id: purchase_payment_id,
+//                         name: value,
+//                         amount: purchase_payment_amount,
+//                       });
+//                     }
+//                   }
+
+//                   let data_payment_status = payment_status
+//                     ? parseFloat(payment_status || 0)
+//                     : 0;
+//                   if (parseFloat(data_payment_status) == 2) {
+//                     if (parseFloat(purchase_paid) == parseFloat(grand_total)) {
+//                       data_payment_status = 2;
+//                     } else if (
+//                       parseFloat(purchase_paid) > 0 &&
+//                       parseFloat(purchase_paid) < parseFloat(grand_total)
+//                     ) {
+//                       data_payment_status = 1;
+//                     } else {
+//                       receive_payment_details = [];
+//                       data_payment_status = 0;
+//                     }
+//                   }
+
+//                   //purchase order payment create
+//                   // if (receive_payment_details?.length > 0) {
+//                   //   for (value of receive_payment_details) {
+//                   //     const receive_payment = await received_payments({
+//                   //       purchase: receive_save?._id,
+//                   //       name: value?.name,
+//                   //       amount: value?.amount,
+//                   //       status: status ? status : 0,
+//                   //       ref: authorize?.ref,
+//                   //       branch: branch ? branch : authorize?.branch,
+//                   //       created: new Date(),
+//                   //       created_by: authorize?.id,
+//                   //     });
+
+//                   //     const receive_payment_save = await receive_payment?.save();
+//                   //   }
+//                   // }
+
+//                   selected_receive.subtotal = purchase_subtotal
+//                     ? purchase_subtotal
+//                     : 0;
+//                   selected_receive.taxamount = purchase_taxamount
+//                     ? purchase_taxamount
+//                     : 0;
+//                   selected_receive.discount = purchase_discount
+//                     ? purchase_discount
+//                     : 0;
+//                   selected_receive.delivery = purchase_delivery
+//                     ? purchase_delivery
+//                     : 0;
+//                   selected_receive.delivery_status = data_delivery_status
+//                     ? data_delivery_status
+//                     : 0;
+//                   selected_receive.delivery_date = data_delivery_date;
+//                   selected_receive.payment_status = data_payment_status
+//                     ? data_payment_status
+//                     : 0;
+//                   selected_receive.total = grand_total ? grand_total : 0;
+
+//                   const selected_receive_save = await selected_receive?.save();
+
+//                   selected_transfer.received = 1;
+//                   const selected_transfer_save =
+//                     await selected_transfer?.save();
+
+//                   success_200(res, "Received order created");
+//                 } else {
+//                   failed_400("Received not found");
+//                 }
+//               } else {
+//                 failed_400(res, "Received failed");
+//               }
+//             } else {
+//               failed_400(res, "Details missing");
+//             }
+//           }
+//         }
+//       }
+//     }
+//   } catch (errors) {
+//     catch_400(res, errors?.message);
+//   }
+// };
+
 const create_receive = async (req, res) => {
   try {
     const authorize = authorization(req);
-    if (authorize) {
-      const {
-        transfer,
-        supplier,
-        number,
-        date,
-        due_date,
-        details,
-        discount,
-        delivery,
-        delivery_status,
-        delivery_date,
-        payment_status,
-        payment_types,
-        payments,
+    if (!authorize) return unauthorized(res);
+
+    const {
+      transfer,
+      supplier,
+      number,
+      date,
+      due_date,
+      details,
+      discount = 0,
+      delivery = 0,
+      delivery_status = 0,
+      delivery_date = "",
+      payment_status = 0,
+      payment_types,
+      payments,
+      status = 0,
+      branch,
+    } = req?.body;
+
+    if (!supplier || !date || !due_date || !(details?.length > 0)) {
+      return incomplete_400(res);
+    }
+
+    let new_number = await get_next_receive(req, res, 1000);
+    let assigned_number = number || new_number;
+
+    const existing_transfer = await transfers?.findById(transfer);
+    if (existing_transfer?.received)
+      return failed_400(res, "Transfer already done");
+
+    const existing_number = await transfers?.findOne({
+      _id: { $ne: transfer },
+      number: assigned_number,
+      ref: authorize?.ref,
+      status: 1,
+    });
+
+    if (existing_number) return failed_400(res, "Received number exists");
+
+    const receive = await new received({
+      supplier,
+      number: assigned_number,
+      date,
+      due_date,
+      subtotal: 0,
+      taxamount: 0,
+      discount: 0,
+      delivery: 0,
+      delivery_status: 0,
+      delivery_date: "",
+      payment_status: 0,
+      total: 0,
+      status,
+      ref: authorize?.ref,
+      branch: branch || authorize?.branch,
+      created: new Date(),
+      created_by: authorize?.id,
+    }).save();
+
+    let receiveDetails = [],
+      unitDetails = [],
+      inventoriesBulk = [],
+      invUnitBulk = [],
+      receiveUnitDetails = [],
+      subtotal = 0,
+      taxamount = 0,
+      total = 0,
+      delivery_count = 0;
+
+    for (const item of details) {
+      const product = await products
+        .findOne({ name: item.name })
+        .populate("unit");
+      if (!product) continue;
+
+      const quantity = parseFloat(item.quantity || 0);
+      const free = parseFloat(item.free || 0);
+      const delivered = Math.min(
+        parseFloat(item.delivered || 0),
+        quantity + free
+      );
+      const price = quantity * parseFloat(item.purchase_price || 0);
+      const tax = price * (parseFloat(item.tax || 0) / 100);
+      const totalAmount = price + tax;
+
+      if (delivered === quantity + free) delivery_count++;
+
+      let inventoryNumber =
+        item.batch || (await get_next_inventories(req, res, 1000));
+      const inventory = new inventories({
+        number: inventoryNumber,
+        receive: receive._id,
+        product: product._id,
+        purchase_price: item.purchase_price,
+        price_per_unit: item.price_per_unit,
+        sale_price: item.sale_price,
+        tax: item.tax,
+        stock: delivered,
+        manufacture_date: item.manufacture_date,
+        expiry_date: item.expiry_date,
+        barcode: item.barcode,
         status,
-        branch,
-      } = req?.body;
+        ref: authorize?.ref,
+        branch: branch || authorize?.branch,
+        created: new Date(),
+        created_by: authorize?.id,
+      });
 
-      let new_number = await get_next_receive(req, res, 1000);
-      let assigned_number = number ? number : new_number;
+      const savedInventory = await inventory.save();
 
-      if (
-        !supplier ||
-        !assigned_number ||
-        !date ||
-        !due_date ||
-        !details?.length > 0
-      ) {
-        incomplete_400(res);
-      } else {
-        const selected_transfer = await transfers?.findById(transfer);
-        console.log(selected_transfer, "selected_transfer");
+      receiveDetails.push({
+        purchase: receive._id,
+        inventory: savedInventory._id,
+        description: product._id,
+        name: product.name,
+        unit: item.unit,
+        unit_name: item.unit_name,
+        purchase_price: item.purchase_price,
+        conversion: item.conversion,
+        quantity,
+        delivered,
+        free,
+        tax: item.tax,
+        barcode: item.barcode,
+        price_per_unit: totalAmount / (quantity + free),
+        sale_price: item.sale_price,
+        expiry_date: item.expiry_date,
+        tax_amount: tax,
+        total: totalAmount,
+        status,
+        ref: authorize?.ref,
+        branch: branch || authorize?.branch,
+        created: new Date(),
+        created_by: authorize?.id,
+      });
 
-        if (selected_transfer?.received) {
-          failed_400(res, "Transfer already done");
-        } else {
-          const selected_purchase_number = await transfers?.findOne({
-            _id: { $ne: transfer },
-            number: assigned_number,
-            // branch: branch ? branch : authorize?.branch,
+      if (item.unit_details_options?.length > 0) {
+        for (const v of item.unit_details_options) {
+          const invUnit = new inventories_units_details({
+            inventory: savedInventory._id,
+            name: v.name,
+            conversion: v.conversion,
+            purchase_price: v.price_per_unit,
+            price_per_unit: v.price_per_unit,
+            sale_price: v.sale_price,
+            stock: v.unit_delivered,
+            status,
             ref: authorize?.ref,
-            status: 1,
+            branch: branch || authorize?.branch,
+            created: new Date(),
+            created_by: authorize?.id,
           });
 
-          if (selected_purchase_number) {
-            failed_400(res, "Received number exists");
-          } else {
-            //create purchase order
-            const receive = new received({
-              supplier: supplier,
-              number: assigned_number,
-              date: date,
-              due_date: due_date,
-              subtotal: 0,
-              taxamount: 0,
-              discount: 0,
-              delivery: 0,
-              delivery_status: 0,
-              delivery_date: "",
-              payment_status: 0,
-              total: 0,
-              status: status ? status : 0,
-              ref: authorize?.ref,
-              branch: branch ? branch : authorize?.branch,
-              created: new Date(),
-              created_by: authorize?.id,
-            });
+          const savedInvUnit = await invUnit.save();
 
-            const receive_save = await receive?.save();
-
-            //purchase order details
-            let purchase_subtotal = 0;
-            let purchase_taxamount = 0;
-            let purchase_total = 0;
-            let delivery_count = 0;
-            let count = 0;
-
-            if (details?.length > 0) {
-              for (value of details) {
-                // const selected_product = await products
-                //   ?.findById?.(value?.description)
-                //   ?.populate({
-                //     path: "unit",
-                //     match: { status: { $ne: 2 } },
-                //   });
-
-                const selected_product = await products
-                  ?.findOne?.({ name: value?.name })
-                  ?.populate({
-                    path: "unit",
-                    match: { status: { $ne: 2 } },
-                  });
-
-                if (selected_product) {
-                  let purchase_unit = value?.unit ? value?.unit : "";
-                  let purchase_unit_name = value?.unit_name
-                    ? value?.unit_name
-                    : "";
-                  let purchase_price = value?.purchase_price
-                    ? value?.purchase_price
-                    : 0;
-                  let purchase_conversion = value?.conversion
-                    ? value?.conversion
-                    : 0;
-                  let purchase_quantity = value?.quantity ? value?.quantity : 0;
-                  let purchase_delivered = value?.delivered
-                    ? value?.delivered
-                    : 0;
-                  let purchase_free = value?.free ? value?.free : 0;
-                  let purchase_tax = value?.tax ? value?.tax : 0;
-                  let purchase_barcode = value?.barcode ? value?.barcode : "";
-                  let purchase_price_per_unit = 0;
-                  let purchase_sale_price = value?.sale_price
-                    ? value?.sale_price
-                    : 0;
-                  let purchase_expiry_date = value?.expiry_date
-                    ? value?.expiry_date
-                    : "";
-
-                  let price =
-                    parseFloat(purchase_quantity) * parseFloat(purchase_price);
-                  let tax_amount =
-                    parseFloat(price) * (parseFloat(purchase_tax) / 100);
-                  let total = parseFloat(price) + parseFloat(tax_amount);
-
-                  let total_quantity =
-                    parseFloat(purchase_quantity) + parseFloat(purchase_free);
-                  purchase_delivered =
-                    parseFloat(purchase_delivered) <= parseFloat(total_quantity)
-                      ? purchase_delivered
-                      : total_quantity;
-                  purchase_price_per_unit =
-                    parseFloat(total) / parseFloat(total_quantity);
-
-                  //delivery status count
-                  if (
-                    parseFloat(total_quantity) == parseFloat(purchase_delivered)
-                  ) {
-                    delivery_count++;
-                  }
-
-                  let selected_unit = "";
-                  let unit_ids = [];
-
-                  //unit details
-                  let purchase_unit_details_options = [];
-                  let unit_details_options = value?.unit_details_options;
-
-                  if (unit_details_options?.length > 0) {
-                    // if (selected_product?._id == value?.unit) {
-                    if (selected_product?.name == value?.name) {
-                      const selectedDetails = await Promise.all(
-                        unit_details_options?.map(async (v, index) => {
-                          const selected_product_units_detail =
-                            await product_units_details
-                              ?.findById(v?._id)
-                              ?.populate("name");
-                          // const selected_product_units_detail =
-                          //   await product_units_details
-                          //     ?.findOne(v?.unit_name)
-                          //     ?.populate("name");
-
-                          return {
-                            name: v?.name,
-                            quantity: v?.quantity ? v?.quantity : 0,
-                            // name: selected_product_units_detail?.name?.name,
-                            // quantity: selected_product_units_detail?.quantity
-                            //   ? selected_product_units_detail?.quantity
-                            //   : 0,
-                            price_per_unit: purchase_price_per_unit
-                              ? parseFloat(purchase_price_per_unit) /
-                                parseFloat(v?.conversion)
-                              : 0,
-                            conversion: v?.conversion ? v?.conversion : 0,
-                            sale_price: v?.sale_price ? v?.sale_price : 0,
-                            unit_quantity: total_quantity
-                              ? parseFloat(v?.conversion) *
-                                parseFloat(total_quantity)
-                              : 0,
-                            unit_delivered: purchase_delivered
-                              ? parseFloat(v?.conversion) *
-                                parseFloat(purchase_delivered)
-                              : 0,
-                          };
-                        })
-                      );
-                      purchase_unit_details_options = [...selectedDetails];
-                    } else {
-                      for (value of unit_details_options) {
-                        unit_ids?.push(value?._id);
-                      }
-
-                      if (unit_ids?.includes(value?.unit)) {
-                        selected_unit =
-                          unit_details_options?.[unit_ids?.indexOf(value?._id)];
-
-                        purchase_unit = selected_unit?.name?.name;
-                        purchase_conversion = selected_unit?.conversion;
-
-                        if (
-                          purchase_conversion &&
-                          parseFloat(purchase_quantity) +
-                            parseFloat(purchase_free) >=
-                            purchase_conversion
-                        ) {
-                          purchase_conversion =
-                            parseFloat(purchase_conversion) - 1;
-                        }
-                      }
-                    }
-                  }
-
-                  //inventories create
-                  let new_number = await get_next_inventories(req, res, 1000);
-                  let assigned_innevtory_number = new_number;
-
-                  const selected_inventory_number = await inventories?.findOne({
-                    number: assigned_innevtory_number,
-                    branch: authorize?.branch,
-                  });
-
-                  if (selected_inventory_number) {
-                    failed_400(res, "Inventory  exists");
-                  } else {
-                    const selected_product_units_detail =
-                      await product_units_details?.find({
-                        product: selected_product?._id,
-                      });
-
-                    let inventory_purchase_price = value?.purchase_price
-                      ? value?.purchase_price
-                      : 0;
-                    let inventory_price_per_unit = value?.price_per_unit
-                      ? value?.price_per_unit
-                      : 0;
-                    let inventory_sale_price = value?.sale_price
-                      ? value?.sale_price
-                      : 0;
-                    let inventory_tax = value?.tax ? value?.tax : 0;
-                    let inventory_stock = value?.delivered
-                      ? value?.delivered
-                      : 0;
-                    let inventory_unit_details_options =
-                      purchase_unit_details_options;
-
-                    // if (selected_product?._id == value?.unit) {
-                    if (selected_product?.name == value?.name) {
-                      inventory_purchase_price = inventory_purchase_price;
-                      inventory_sale_price = inventory_sale_price;
-                      inventory_tax = inventory_tax;
-                      inventory_stock = inventory_stock;
-                      inventory_price_per_unit = inventory_price_per_unit;
-                      inventory_unit_details_options =
-                        inventory_unit_details_options;
-                    } else {
-                      inventory_purchase_price = 0;
-                      inventory_price_per_unit = 0;
-                      inventory_sale_price = 0;
-                      inventory_tax = inventory_tax;
-                      inventory_stock =
-                        parseFloat(value?.delivered || 0) /
-                        parseFloat(value?.conversion || 0);
-                      inventory_unit_details_options =
-                        selected_product_units_detail;
-                    }
-
-                    const inventory = new inventories({
-                      number: assigned_innevtory_number,
-                      purchase: receive_save?._id,
-                      // product: value?.description,
-                      product: selected_product?._id,
-                      purchase_price: inventory_purchase_price,
-                      price_per_unit: inventory_price_per_unit,
-                      sale_price: inventory_sale_price,
-                      tax: inventory_tax,
-                      stock: inventory_stock,
-                      manufacture_date: value?.manufacture_date,
-                      expiry_date: value?.expiry_date,
-                      barcode: value?.barcode,
-                      status: status ? status : 0,
-                      ref: authorize?.ref,
-                      branch: branch ? branch : authorize?.branch,
-                      created: new Date(),
-                      created_by: authorize?.id,
-                    });
-                    const inventory_save = await inventory?.save();
-
-                    //purchase order details
-                    const receive_detail = new received_details({
-                      purchase: receive_save?._id,
-                      inventory: inventory_save?._id,
-                      description: selected_product?._id,
-                      name: selected_product?.name,
-                      unit: purchase_unit,
-                      unit_name: purchase_unit_name,
-                      purchase_price: purchase_price,
-                      conversion: purchase_conversion,
-                      quantity: purchase_quantity,
-                      delivered: purchase_delivered,
-                      free: purchase_free,
-                      tax: purchase_tax,
-                      barcode: purchase_barcode,
-                      price_per_unit: purchase_price_per_unit,
-                      sale_price: purchase_sale_price,
-                      expiry_date: purchase_expiry_date,
-                      tax_amount: tax_amount,
-                      total: total,
-                      status: status ? status : 0,
-                      ref: authorize?.ref,
-                      branch: branch ? branch : authorize?.branch,
-                      created: new Date(),
-                      created_by: authorize?.id,
-                    });
-
-                    const receive_detail_save = await receive_detail?.save();
-
-                    //inventory units details
-                    if (inventory_unit_details_options?.length > 0) {
-                      for (v of inventory_unit_details_options) {
-                        if (v?._id == value?.unit) {
-                          const inventories_units_detail =
-                            new inventories_units_details({
-                              inventory: inventory_save?._id,
-                              name: value?.unit_name,
-                              conversion: value?.conversion,
-                              purchase_price: value?.purchase_price,
-                              price_per_unit: value?.price_per_unit,
-                              sale_price: value?.sale_price,
-                              stock: value?.delivered,
-                              status: status ? status : 0,
-                              ref: authorize?.ref,
-                              branch: branch ? branch : authorize?.branch,
-                              created: new Date(),
-                              created_by: authorize?.id,
-                            });
-
-                          const inventories_units_detail_save =
-                            await inventories_units_detail?.save();
-                        } else {
-                          const inventories_units_detail =
-                            new inventories_units_details({
-                              inventory: inventory_save?._id,
-                              name: v?.name,
-                              conversion: v?.conversion,
-                              purchase_price: v?.price_per_unit,
-                              price_per_unit: v?.price_per_unit,
-                              sale_price: v?.sale_price,
-                              stock: v?.unit_delivered,
-                              status: status ? status : 0,
-                              ref: authorize?.ref,
-                              branch: branch ? branch : authorize?.branch,
-                              created: new Date(),
-                              created_by: authorize?.id,
-                            });
-
-                          const inventories_units_detail_save =
-                            await inventories_units_detail?.save();
-
-                          //purchase order unit details
-                          const receive_unit_detail =
-                            new received_units_details({
-                              details: receive_detail_save?._id,
-                              inventory_unit:
-                                inventories_units_detail_save?._id,
-                              name: v?.name,
-                              quantity: v?.quantity,
-                              purchase_price: v?.price_per_unit,
-                              price_per_unit: v?.price_per_unit,
-                              sale_price: v?.sale_price,
-                              conversion: v?.conversion,
-                              unit_quantity: v?.unit_quantity,
-                              unit_delivered: v?.unit_delivered,
-                              status: status ? status : 0,
-                              ref: authorize?.ref,
-                              branch: branch ? branch : authorize?.branch,
-                              created: new Date(),
-                              created_by: authorize?.id,
-                            });
-
-                          const receive_unit_detail_save =
-                            receive_unit_detail?.save();
-                        }
-                      }
-                    }
-                  }
-
-                  purchase_subtotal =
-                    parseFloat(purchase_subtotal) + parseFloat(price);
-                  purchase_taxamount =
-                    parseFloat(purchase_taxamount) + parseFloat(tax_amount);
-                  purchase_total =
-                    parseFloat(purchase_total) + parseFloat(total);
-
-                  count++;
-                }
-              }
-
-              //total update
-              if (count == details?.length) {
-                const selected_receive = await received?.findById(
-                  receive_save?._id
-                );
-
-                if (selected_receive) {
-                  //delivery status
-                  let data_delivery_status = delivery_status
-                    ? parseFloat(delivery_status || 0)
-                    : 0;
-                  let data_delivery_date = delivery_date ? delivery_date : "";
-
-                  if (parseFloat(data_delivery_status) == 2) {
-                    if (parseFloat(delivery_count) == details?.length) {
-                      data_delivery_status = 2;
-                    } else if (
-                      parseFloat(delivery_count) > 0 &&
-                      parseFloat(delivery_count) < details?.length
-                    ) {
-                      data_delivery_status = 1;
-                      data_delivery_date = "";
-                    } else {
-                      data_delivery_status = 0;
-                      data_delivery_date = "";
-                    }
-                  }
-
-                  //grand total
-                  let purchase_discount = 0;
-                  if (discount) {
-                    if (discount <= purchase_total) {
-                      purchase_discount = discount;
-                    }
-                  }
-                  let purchase_delivery = delivery ? delivery : 0;
-
-                  let grand_total =
-                    parseFloat(purchase_total) +
-                    parseFloat(purchase_delivery) -
-                    parseFloat(purchase_discount);
-
-                  //payment status
-                  let purchase_payment_types = payment_types
-                    ? JSON?.parse(payment_types)
-                    : "";
-                  let purchase_payments = payments ? JSON?.parse(payments) : "";
-
-                  let purchase_paid = 0;
-                  let receive_payment_details = [];
-                  if (purchase_payment_types?.length > 0) {
-                    for (value of purchase_payment_types) {
-                      let purchase_payment_id = purchase_payments[value]?.id
-                        ? purchase_payments[value]?.id
-                        : "";
-                      let purchase_payment_amount = purchase_payments[value]
-                        ?.amount
-                        ? parseFloat(purchase_payments[value]?.amount)
-                        : 0;
-
-                      purchase_paid =
-                        parseFloat(purchase_paid) +
-                        parseFloat(purchase_payment_amount);
-
-                      receive_payment_details?.push({
-                        id: purchase_payment_id,
-                        name: value,
-                        amount: purchase_payment_amount,
-                      });
-                    }
-                  }
-
-                  let data_payment_status = payment_status
-                    ? parseFloat(payment_status || 0)
-                    : 0;
-                  if (parseFloat(data_payment_status) == 2) {
-                    if (parseFloat(purchase_paid) == parseFloat(grand_total)) {
-                      data_payment_status = 2;
-                    } else if (
-                      parseFloat(purchase_paid) > 0 &&
-                      parseFloat(purchase_paid) < parseFloat(grand_total)
-                    ) {
-                      data_payment_status = 1;
-                    } else {
-                      receive_payment_details = [];
-                      data_payment_status = 0;
-                    }
-                  }
-
-                  //purchase order payment create
-                  // if (receive_payment_details?.length > 0) {
-                  //   for (value of receive_payment_details) {
-                  //     const receive_payment = await received_payments({
-                  //       purchase: receive_save?._id,
-                  //       name: value?.name,
-                  //       amount: value?.amount,
-                  //       status: status ? status : 0,
-                  //       ref: authorize?.ref,
-                  //       branch: branch ? branch : authorize?.branch,
-                  //       created: new Date(),
-                  //       created_by: authorize?.id,
-                  //     });
-
-                  //     const receive_payment_save = await receive_payment?.save();
-                  //   }
-                  // }
-
-                  selected_receive.subtotal = purchase_subtotal
-                    ? purchase_subtotal
-                    : 0;
-                  selected_receive.taxamount = purchase_taxamount
-                    ? purchase_taxamount
-                    : 0;
-                  selected_receive.discount = purchase_discount
-                    ? purchase_discount
-                    : 0;
-                  selected_receive.delivery = purchase_delivery
-                    ? purchase_delivery
-                    : 0;
-                  selected_receive.delivery_status = data_delivery_status
-                    ? data_delivery_status
-                    : 0;
-                  selected_receive.delivery_date = data_delivery_date;
-                  selected_receive.payment_status = data_payment_status
-                    ? data_payment_status
-                    : 0;
-                  selected_receive.total = grand_total ? grand_total : 0;
-
-                  const selected_receive_save = await selected_receive?.save();
-
-                  selected_transfer.received = 1;
-                  const selected_transfer_save =
-                    await selected_transfer?.save();
-
-                  success_200(res, "Received order created");
-                } else {
-                  failed_400("Received not found");
-                }
-              } else {
-                failed_400(res, "Received failed");
-              }
-            } else {
-              failed_400(res, "Details missing");
-            }
-          }
+          receiveUnitDetails.push({
+            details: receive._id,
+            inventory_unit: savedInvUnit._id,
+            name: v.name,
+            quantity: v.quantity,
+            purchase_price: v.price_per_unit,
+            price_per_unit: v.price_per_unit,
+            sale_price: v.sale_price,
+            conversion: v.conversion,
+            unit_quantity: v.unit_quantity,
+            unit_delivered: v.unit_delivered,
+            status,
+            ref: authorize?.ref,
+            branch: branch || authorize?.branch,
+            created: new Date(),
+            created_by: authorize?.id,
+          });
         }
       }
+
+      subtotal += price;
+      taxamount += tax;
+      total += totalAmount;
     }
-  } catch (errors) {
-    catch_400(res, errors?.message);
+
+    await received_details.insertMany(receiveDetails);
+    await received_units_details.insertMany(receiveUnitDetails);
+
+    const delivery_status_val =
+      delivery_status == 2 && delivery_count === details.length
+        ? 2
+        : delivery_count > 0
+        ? 1
+        : 0;
+
+    const discountFinal = Math.min(discount, total);
+    const grandTotal = total + delivery - discountFinal;
+
+    let paid = 0;
+    const parsedPayments = payments ? JSON.parse(payments) : {};
+    const parsedTypes = payment_types ? JSON.parse(payment_types) : [];
+
+    for (const type of parsedTypes) {
+      paid += parseFloat(parsedPayments?.[type]?.amount || 0);
+    }
+
+    const payment_status_val =
+      payment_status == 2 && paid >= grandTotal ? 2 : paid > 0 ? 1 : 0;
+
+    Object.assign(receive, {
+      subtotal,
+      taxamount,
+      discount: discountFinal,
+      delivery,
+      delivery_status: delivery_status_val,
+      delivery_date: delivery_status_val ? delivery_date : "",
+      payment_status: payment_status_val,
+      total: grandTotal,
+    });
+    await receive.save();
+
+    existing_transfer.received = 1;
+    await existing_transfer.save();
+
+    success_200(res, "Received order created");
+  } catch (error) {
+    catch_400(res, error?.message);
   }
 };
 
@@ -1152,6 +1379,89 @@ const get_all_purchase_details = async (req, res) => {
   }
 };
 
+const get_all_received_ids = async (req, res) => {
+  try {
+    const authorize = authorization(req);
+
+    if (!authorize) {
+      return unauthorized(res);
+    }
+
+    const {
+      search,
+      supplier,
+      contractor,
+      status,
+      date,
+      due_date,
+      sort,
+      page,
+      limit,
+    } = req?.body;
+
+    const page_number = Number(page) || 1;
+    const page_limit = Number(limit) || 10;
+
+    const transfersList = {
+      // branch: authorize?.branch,
+      supplier: authorize?.branch,
+      status: { $ne: 2 },
+    };
+
+    // Apply filters based on request body
+    if (search) {
+      transfersList.$or = [{ number: { $regex: search, $options: "i" } }];
+    }
+
+    // if (supplier) transfersList.supplier = supplier;
+    // if (contractor) transfersList.contractor = contractor;
+    if (status == 0) transfersList.status = status;
+
+    if (date?.start && date?.end) {
+      let startDate = new Date(date.start);
+      startDate.setHours(0, 0, 0, 0);
+
+      let endDate = new Date(date.end);
+      endDate.setHours(23, 59, 59, 999);
+
+      transfersList.date = {
+        $gte: startDate,
+        $lte: endDate,
+      };
+    }
+
+    // Set sorting options
+    let sortOption = { created: -1 };
+    if (sort == 0) {
+      sortOption = { total: 1 };
+    } else if (sort == 1) {
+      sortOption = { total: -1 };
+    }
+
+    // Get total count for pagination metadata
+    const totalCount = await received.countDocuments(transfersList);
+
+    // Fetch paginated data
+    const paginated_transfers = await received
+      .find(transfersList)
+      .sort(sortOption)
+      .skip((page_number - 1) * page_limit)
+      .limit(page_limit)
+      .populate("supplier");
+
+    const totalPages = Math.ceil(totalCount / page_limit);
+
+    success_200(res, "", {
+      currentPage: page_number,
+      totalPages,
+      totalCount,
+      data: paginated_transfers,
+    });
+  } catch (errors) {
+    catch_400(res, errors?.message);
+  }
+};
+
 module.exports = {
   create_receive,
   update_receive,
@@ -1163,4 +1473,5 @@ module.exports = {
   get_all_purchase_details,
   get_purchase_log,
   get_all_purchases_log,
+  get_all_received_ids,
 };
