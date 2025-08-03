@@ -1666,6 +1666,8 @@ const update_invoice = async (req, res) => {
                 //   ? data_delivery_status
                 //   : 0;
 
+                console.log("");
+
                 selected_invoice.delivery_status = delivery_status;
                 selected_invoice.delivery_date = data_delivery_date;
                 selected_invoice.payment_status = data_payment_status
