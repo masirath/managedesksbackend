@@ -103,6 +103,10 @@ const invoices_schema = mongoose.Schema({
     type: Number,
     default: 0,
   },
+  note: {
+    required: false,
+    type: String,
+  },
   status: {
     required: true,
     type: Number,

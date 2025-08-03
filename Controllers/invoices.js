@@ -643,6 +643,7 @@ const create_invoice = async (req, res) => {
       payment_types,
       payments,
       status = 0,
+      note,
       branch,
     } = req.body;
 
@@ -684,6 +685,7 @@ const create_invoice = async (req, res) => {
       ref,
       branch: branch_id,
       created: new Date(),
+      note: note,
       created_by,
     });
 
@@ -925,6 +927,7 @@ const update_invoice = async (req, res) => {
         payment_types,
         payments,
         status,
+        note,
         branch,
       } = req?.body;
 
@@ -1666,6 +1669,7 @@ const update_invoice = async (req, res) => {
                   ? data_payment_status
                   : 0;
                 selected_invoice.total = grand_total ? grand_total : 0;
+                selected_invoice.note = note ? note : 0;
 
                 const selected_invoice_save = await selected_invoice?.save();
 
