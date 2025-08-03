@@ -889,7 +889,8 @@ const create_invoice = async (req, res) => {
     selected_invoice.taxamount = invoice_taxamount;
     selected_invoice.discount = invoice_discount ? invoice_discount : 0;
     selected_invoice.delivery = delivery ? delivery : 0;
-    selected_invoice.delivery_status = data_delivery_status;
+    // selected_invoice.delivery_status = data_delivery_status;
+    selected_invoice.delivery_status = delivery_status;
     selected_invoice.delivery_date = data_delivery_date;
     selected_invoice.payment_status = data_payment_status;
     selected_invoice.total = grand_total;
@@ -1661,9 +1662,11 @@ const update_invoice = async (req, res) => {
                 selected_invoice.delivery = invoice_delivery
                   ? invoice_delivery
                   : 0;
-                selected_invoice.delivery_status = data_delivery_status
-                  ? data_delivery_status
-                  : 0;
+                // selected_invoice.delivery_status = data_delivery_status
+                //   ? data_delivery_status
+                //   : 0;
+
+                selected_invoice.delivery_status = delivery_status;
                 selected_invoice.delivery_date = data_delivery_date;
                 selected_invoice.payment_status = data_payment_status
                   ? data_payment_status
