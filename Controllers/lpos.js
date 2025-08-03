@@ -152,7 +152,7 @@ const create_lpo = async (req, res) => {
       const delivered = Math.min(parseFloat(value.delivered || 0), total_qty);
       const price_per_unit = total_qty > 0 ? line_total / total_qty : 0;
 
-      console.log(line_total, "line_total");
+      // console.log(line_total, "line_total");
 
       if (delivered === total_qty) delivery_count++;
       const detail = {
@@ -335,7 +335,6 @@ const update_lpo = async (req, res) => {
             const conv = parseFloat(u?.conversion || 1);
             return {
               _id: u?._id,
-              // inventory_unit: u?.inventory_unit,
               name: u?.name,
               quantity: parseFloat(u?.quantity || 0),
               conversion: conv,
@@ -425,7 +424,7 @@ const update_lpo = async (req, res) => {
         },
       });
 
-      // update & create inventory & purchase order details units
+      // update & create lpo order details units
       for (const unit of unitDetails) {
         if (detail.inventory) {
           // update purchase order unit details
@@ -547,32 +546,6 @@ const delete_lpo = async (req, res) => {
         if (!selected_lpo || selected_lpo?.status == 2) {
           failed_400(res, "Lpo Order not found");
         } else {
-          const lpo_log = new lpos_log({
-            lpo: id,
-            supplier: selected_lpo?.supplier,
-            number: selected_lpo?.number,
-            date: selected_lpo?.date,
-            due_date: selected_lpo?.due_date,
-            subtotal: selected_lpo?.subtotal,
-            taxamount: selected_lpo?.taxamount,
-            discount: selected_lpo?.discount,
-            delivery: selected_lpo?.delivery,
-            delivery_status: selected_lpo?.delivery_status,
-            delivery_date: selected_lpo?.delivery_date,
-            payment_status: selected_lpo?.payment_status,
-            payment_types: selected_lpo?.payment_types,
-            payments: selected_lpo?.payments,
-            paid: selected_lpo?.paid,
-            remaining: selected_lpo?.remaining,
-            total: selected_lpo?.total,
-            status: selected_lpo?.status,
-            ref: selected_lpo?.ref,
-            branch: selected_lpo?.branch,
-            updated: new Date(),
-            updated_by: authorize?.id,
-          });
-          const lpo_log_save = await lpo_log?.save();
-
           selected_lpo.status = 2;
           const delete_lpo = await selected_lpo?.save();
 

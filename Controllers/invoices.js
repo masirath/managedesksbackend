@@ -734,7 +734,7 @@ const create_invoice = async (req, res) => {
 
       const isMainUnit = inventory._id.toString() === unit_id;
       const conversion = parseFloat(
-        isMainUnit ? 1 : selected_unit.conversion || 1
+        isMainUnit ? 1 : selected_unit.conversion || 0
       );
 
       const mainStockReduction = isMainUnit
@@ -752,7 +752,7 @@ const create_invoice = async (req, res) => {
             if (v._id.toString() === unit_id) {
               reduceStock = delivered;
             } else {
-              reduceStock = delivered * parseFloat(v.conversion || 1);
+              reduceStock = delivered * parseFloat(v.conversion || 0);
             }
             detail.stock = Math.max(0, detail.stock - reduceStock);
             await detail.save();
